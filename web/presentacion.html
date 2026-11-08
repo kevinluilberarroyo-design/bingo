@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bingo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body{
+  margin:0;
+  padding:0;
+  height:100%;
+  overflow:hidden;
+}
+
+body{
+  background: #f5f7fb;
+  font-family: Arial;
+  text-align: center;
+}
+
+/* CONTENEDOR PRINCIPAL */
+#contenedorPrincipal {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TABLERO (NO TOCAR) */
+.tablero{
+  display: grid;
+  grid-template-columns: 6vw repeat(15, 5vw);
+  gap: 0.8vw;
+  justify-content: center;
+  margin: 1vw auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* LETRAS */
+.letraFila{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* CASILLAS */
+.casilla{
+  width: 5vw;
+  height: 5vw;
+  border: 3px solid #ccc;
+  border-radius: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: white;
+  font-size: 2vw;
+  font-weight: bold;
+}
+
+.b { border-color: #3b82f6; }
+.i { border-color: #22c55e; }
+.n { border-color: #f59e0b; }
+.g { border-color: #ef4444; }
+.o { border-color: #8b5cf6; }
+
+.marcado{
+  background: #111;
+  color: white;
+}
+
+/* INFERIOR (AQUÍ ESTABA EL PROBLEMA) */
+.inferior{
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  height: 45vh;   /* 🔥 espacio real */
+  padding: 10px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* BLOQUES */
+.bloque{
+  background: white;
+  border-radius: 10px;
+  border: 3px solid #ccc;
+  padding: 15px;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+/* TITULOS */
+.titulo{
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* NUMERO */
+#numeroGrande{
+  font-size: 3vw;
+  font-weight: bold;
+}
+
+/* CAMARA */
+#camara{
+  height: 100%;
+  width: auto;
+  max-width: 40%;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid #999;
+}
+
+#camaraBox{
+  height: 100%;
+  width: 35%;
+  display: flex;
+}
+
+#camaraBox img{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+
+/* FIGURAS */
+.cartones{
+  flex: 1;
+  min-height: 0;
+  border: 3px dashed #bbb;
+  border-radius: 30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 1px;
+  color: hwb(123 24% 7%);
+}
+
+/* CONTENEDOR FIGURAS */
+#figurasContenedor{
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  gap:15px;
+  width:100%;
+  height:100%;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* FIGURA INDIVIDUAL */
+.figuraBox{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* CELDAS FIGURA */
+.celdaFig{
+  width: 40px;
+  height: 40px;
+  border: 2px solid #aaa;
+}
+
+.activa{
+  background: hwb(123 15% 11%);
+}
+
+.free{
+  background: gold;
+}
+
+/* CARTÓN GUIA (FIX REAL) */
+.cartonGuia{
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 5px;
+}
+
+.cartonGuia td,
+.cartonGuia th{
+  width: clamp(25px, 3vw, 30px);
+  height: clamp(25px, 3vw, 30px);
+  border: 2px solid #999;
+  text-align: center;
+}
+
+/* MINI GANADOR */
+#ganadorMini{
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+#ganadorMini .carton td{
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+#ganadorMini .carton{
+  border-collapse: collapse;
+  margin:auto;
+}
+
+#ganadorMini .carton td{
+  width:35px;
+  height:35px;
+  border:2px solid #999;
+  text-align:center;
+  font-weight:bold;
+  background:white;
+}
+
+#ganadorMini .figura{
+  background: limegreen;
+  color:white;
+}
+
+#ganadorMini .free{
+  background: gold;
+}
+
+
+</style>
+
+</head>
+<script>
+
+</script>
+
+<body>
+
+
+<div id="tablero" class="tablero"></div>
+
+<div class="inferior">
+
+  <!-- CAMARA -->
+  
+ <div id="camaraBox">
+ <img src="/stream">
+</div>
+
+  <!-- ULTIMO NUMERO -->
+  <div class="bloque" id="bloqueNumero">
+
+  <div class="titulo">Último número</div>
+  <div id="numeroGrande">--</div>
+
+  <!-- 🔥 GANADOR AQUÍ -->
+  <div id="ganadorMini"></div>
+
+</div>
+
+  <!-- FIGURA -->
+  <div class="bloque">
+    <div class="titulo">Figura en juego</div>
+
+<div class="cartones" id="figurasContenedor"></div>
+
+<div id="pantallaTV"></div>
+
+</div>
+
+  --
+</div>
+  </div>
+
+</div>
+<script src="config.js"></script>
+<script>
+  
+  
+let cacheFiguras = [];
+let cachePremios = [];
+let estadoAnterior = false;
+  let figurasDB = [];
+  let colaFiguras = [];
+let figuraActual = null;
+const tablero = document.getElementById("tablero");
+
+
+const letras = ['B','I','N','G','O'];
+const clases = ['b','i','n','g','o'];
+
+for(let l = 0; l < 5; l++){
+
+  let letraDiv = document.createElement("div");
+  letraDiv.classList.add("letraFila");
+  letraDiv.innerText = letras[l];
+  tablero.appendChild(letraDiv);
+
+  let inicio = l * 15 + 1;
+  let fin = inicio + 14;
+  
+
+
+
+  for(let i = inicio; i <= fin; i++){
+    let casilla = document.createElement("div");
+    casilla.classList.add("casilla");
+    casilla.classList.add(clases[l]);
+
+    casilla.innerText = i;
+    casilla.id = "n"+i;
+
+    tablero.appendChild(casilla);
+  }
+}
+setInterval(() => {
+    sincronizar();
+}, 300);
+
+
+
+function sincronizar(){
+
+    fetch('/estado.json')
+    .then(r => r.json())
+    .then(data => {
+
+        let salidos = data.salidos || [];
+
+        if(!salidos.length){
+
+         // 🔥 BORRAR TODAS LAS CASILLAS
+          document.querySelectorAll(".casilla").forEach(c=>{
+          c.classList.remove("marcado");
+          });
+
+          // 🔥 LIMPIAR NÚMERO GRANDE
+          document.getElementById("numeroGrande").innerText = "--";
+
+           return;
+        }
+
+        let ultimo = salidos[salidos.length - 1];
+
+        // 🔥 actualizar último número
+        document.getElementById("numeroGrande").innerText = ultimo;
+
+        // 🔥 marcar tablero
+        let casilla = document.getElementById("n"+ultimo);
+        if(casilla){
+            casilla.classList.add("marcado");
+        }
+    });
+}
+async function cargarFiguras(){
+
+  let res = await fetch("/figuras_db.json?x=" + Date.now());
+  let data = await res.json();
+
+  figurasDB = data.figuras || [];
+
+  console.log("🔥 figuras cargadas:", figurasDB.length);
+}
+window.addEventListener("load", async () => {
+
+  console.log("🔥 INICIANDO SISTEMA...");
+
+  await cargarFiguras();
+
+  // 🔥 ESTO ES LO QUE TE FALTABA
+  let cont = document.getElementById("figurasContenedor");
+  cont.innerHTML = "";
+
+  let res = await fetch("/figuras.json");
+let data = await res.json();
+
+let figura = data.f1;
+
+if(figura){
+  dibujarFiguraEn(cont, figura);
+}
+
+});
+
+
+let estadoJuego = false;
+
+async function leerEstadoJuego(){
+
+ let res = await fetch("/estado-juego");
+  let data = await res.json();
+
+  estadoJuego = data.juegoActivo || false;
+
+  return estadoJuego; // 🔥 IMPORTANTE
+}
+
+
+function dibujarFiguraEn(contenedor, nombre){
+
+  let figura = figurasDB.find(f => f.nombre === nombre);
+
+  if(!figura){
+    console.log("❌ figura no existe:", nombre);
+    return;
+  }
+
+  let posiciones = figura.posiciones;
+
+  let tabla = document.createElement("table");
+  tabla.className = "cartonGuia";
+
+  for(let r=0;r<5;r++){
+
+    let fila = document.createElement("tr");
+
+    for(let c=0;c<5;c++){
+
+      let td = document.createElement("td");
+
+      let index = r*5+c;
+
+      if(index === 12) td.classList.add("free");
+
+      if(posiciones.includes(index)) td.classList.add("activa");
+
+      fila.appendChild(td);
+    }
+
+    tabla.appendChild(fila);
+  }
+
+  contenedor.appendChild(tabla);
+}
+let premios = [0, 0, 0];
+//figura guia___--
+function redondearMil(valor){
+   return Math.max(1000, Math.round(valor / 1000) * 1000);
+}
+
+function calcularPremios(totalDinero, figurasActivas){
+
+   let bolsa = totalDinero * 0.70;
+   let premios = [];
+
+   if(figurasActivas == 3){
+
+      premios = [
+         redondearMil(bolsa * 0.30),
+         redondearMil(bolsa * 0.30),
+         redondearMil(bolsa * 0.40)
+      ];
+
+   }else if(figurasActivas == 2){
+
+      premios = [
+         redondearMil(bolsa * 0.30),
+         redondearMil(bolsa * 0.70)
+      ];
+
+   }else if(figurasActivas == 1){
+
+      premios = [
+         redondearMil(bolsa)
+      ];
+   }
+
+   return premios;
+}
+
+//figura guia___--
+
+//-----
+
+
+
+
+function limpiar(txt){
+  return txt
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s/g, "_");
+}
+
+
+
+
+
+
+
+
+function getFig(nombre){
+
+  let limpio = limpiar(nombre);
+
+  let f = figurasDB.find(x => limpiar(x.nombre) === limpio);
+
+  if(!f){
+    console.log("❌ NO encontrada:", limpio);
+    return [];
+  }
+
+  return f.posiciones;
+}
+
+console.log("🔥 script final cargado");
+
+
+function generarHTMLCarton(datosPlano, figura){
+
+    let tipo = figura.toLowerCase();
+
+    tipo = tipo.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+    let figIndex = getFig(tipo);
+
+    let html = "<table class='carton'>";
+
+    for(let i=0;i<5;i++){
+
+        html += "<tr>";
+
+        for(let j=0;j<5;j++){
+
+            let index = i*5+j;
+
+            let valor = datosPlano[index];
+
+            let clase = "";
+
+            if(figIndex.includes(index)){
+                clase = "figura";
+            }
+
+            if(index === 12){
+                valor = "FREE";
+            }
+
+            html += `<td class="${clase}">${valor}</td>`;
+        }
+
+        html += "</tr>";
+    }
+
+    html += "</table>";
+
+    return html;
+}
+
+
+
+
+////--------fin de trasmision de guia-----
+
+
+
+
+
+
+
+</script>
+<script>
+function activarFullscreen(){
+  const elem = document.documentElement;
+
+  if (elem.requestFullscreen) elem.requestFullscreen();
+  else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+  else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+}
+
+// 👇 necesario en TVs
+document.addEventListener("click", activarFullscreen);
+
+setInterval(async () => {
+
+  try {
+
+    await leerEstadoJuego();
+
+    let rDinero = await fetch("/ventas_dinero.json?x=" + Date.now());
+    let dDinero = await rDinero.json();
+
+    let totalDinero = Number(dDinero.totalDinero ?? 0);
+
+    let res = await fetch("/figuras.json?x=" + Date.now());
+    let data = await res.json();
+
+    let cont = document.getElementById("figurasContenedor");
+    cont.innerHTML = "";
+
+    // 🔥 1. SOLO CAMBIA ESTADO (NO RENDER AQUÍ)
+    if (estadoJuego !== estadoAnterior) {
+      estadoAnterior = estadoJuego;
+
+      cacheFiguras = [data.f1, data.f2, data.f3].filter(x => x && x !== "");
+
+      // 🔥 si el juego está activo, solo muestra la primera figura
+      if (estadoJuego && cacheFiguras.length > 0) {
+        cacheFiguras = [cacheFiguras[0]];
+      }
+
+      cachePremios = calcularPremios(totalDinero, cacheFiguras.length);
+    }
+
+    // 🔥 2. RENDER SIEMPRE (ESTO ES CLAVE)
+    if (cacheFiguras.length === 0) {
+      cont.innerHTML = "<div style='color:#777'>Sin figuras activas</div>";
+      return;
+    }
+
+    cacheFiguras.forEach((fig, index) => {
+
+      let box = document.createElement("div");
+      box.className = "figuraBox";
+
+      let precio = document.createElement("div");
+      precio.style.fontWeight = "bold";
+      precio.style.fontSize = "22px";
+      precio.style.color = "green";
+      precio.style.marginBottom = "5px";
+
+      let valorPremio = cachePremios[index] ?? 0;
+
+      precio.innerText = "$" + valorPremio.toLocaleString();
+
+      box.appendChild(precio);
+
+      dibujarFiguraEn(box, fig);
+
+      cont.appendChild(box);
+    });
+
+  } catch (err) {
+    console.log("❌ ERROR FIGURAS:", err);
+  }
+
+}, 1000);
+
+
+////////////pagar premio//////
+
+let ultimoGanadorMostrado = null;
+let ultimoNumeroDetectado = null;
+
+setInterval(async () => {
+
+    try{
+
+        // 🔥 leer estado números
+        let rEstado = await fetch('/estado.json?x=' + Date.now());
+        let estado = await rEstado.json();
+
+        let salidos = estado.salidos || [];
+
+        let ultimoNumero = salidos[salidos.length - 1];
+
+        // 🔥 si salió un número nuevo → borrar ganador
+       // 🔥 detectar cambio REAL de número
+if(ultimoNumero){
+
+    // primera vez
+    if(ultimoNumeroDetectado === null){
+
+        ultimoNumeroDetectado = ultimoNumero;
+
+    }
+    // si cambió el número
+    else if(ultimoNumero !== ultimoNumeroDetectado){
+
+        ultimoNumeroDetectado = ultimoNumero;
+
+        // 🔥 ahora sí borrar ganador
+        document.getElementById("ganadorMini").innerHTML = "";
+
+        ultimoGanadorMostrado = null;
+    }
+}
+
+        // 🔥 leer ganador
+        let res = await fetch('/ganador_tv.json?x=' + Date.now());
+
+        let data = await res.json();
+
+        let div = document.getElementById("ganadorMini");
+
+        if(!div) return;
+
+        // 🔥 si hay ganador nuevo
+       
+       // 🔥 guardar ganador SOLO si NO hay uno mostrado
+if(data && data.carton){
+
+    if(data.datosPlano && data.figura){
+
+        data.html = generarHTMLCarton(
+            data.datosPlano,
+            data.figura
+        );
+    }
+
+    ultimoGanadorMostrado = data;
+}
+
+        // 🔥 si no hay ninguno guardado
+        if(!ultimoGanadorMostrado) return;
+
+        let g = ultimoGanadorMostrado;
+
+        div.innerHTML = `
+
+            <div style="
+                background:black;
+                color:white;
+                padding:15px;
+                border-radius:15px;
+                margin-top:10px;
+            ">
+
+                <h2 style="color:gold;">
+                    🎉 GANADOR 🎉
+                </h2>
+
+                <h3>${g.modulo}</h3>
+
+                <h3>${g.carton}</h3>
+
+                <h3>${g.figura}</h3>
+
+                <h3>${g.vendedor}</h3>
+
+                ${g.html || ""}
+
+            </div>
+
+        `;
+
+    }catch(e){
+
+        console.log("Error ganadorMini:", e);
+
+    }
+
+}, 1000);
+
+   ///////premio/////////
+
+   // intento automático
+
+   </script>
+
+</body>
+</html>

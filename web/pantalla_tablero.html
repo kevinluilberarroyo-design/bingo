@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tablero TV</title>
+
+<style>
+
+body{
+    margin:0;
+    background:#f5f7fb;
+    font-family:Arial;
+    overflow:hidden;
+}
+
+.contenedor{
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+}
+
+.tablero{
+    display:grid;
+    grid-template-columns: 6vw repeat(15,5vw);
+    gap:.5vw;
+    justify-content:center;
+    margin-top:10px;
+}
+
+.letraFila{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    font-weight:bold;
+}
+
+.casilla{
+    width:5vw;
+    height:5vw;
+    border:3px solid #ccc;
+    border-radius:10px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:2vw;
+    font-weight:bold;
+    background:white;
+}
+
+.b{border-color:#3b82f6;}
+.i{border-color:#22c55e;}
+.n{border-color:#f59e0b;}
+.g{border-color:#ef4444;}
+.o{border-color:#8b5cf6;}
+
+.marcado{
+    background:black;
+    color:white;
+}
+
+.inferior{
+    display:flex;
+    gap:10px;
+    height:40vh;
+    padding:10px;
+    box-sizing:border-box;
+}
+
+#camaraBox{
+    width:40%;
+    height:100%;
+}
+
+#camaraBox img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border-radius:10px;
+}
+
+#numeroBox{
+    width:20%;
+    background:white;
+    border-radius:10px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:90px;
+    font-weight:bold;
+}
+
+#figurasContenedor{
+    flex:1;
+    background:white;
+    border-radius:10px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.cartonGuia{
+    border-collapse:collapse;
+}
+
+.cartonGuia td{
+    width:45px;
+    height:45px;
+    border:2px solid #999;
+}
+
+.activa{
+    background:limegreen;
+}
+
+.free{
+    background:gold;
+}
+.cartonGanador{
+    border-collapse:collapse;
+    margin:auto;
+}
+
+.cartonGanador td{
+    width:60px;
+    height:60px;
+    border:2px solid white;
+    text-align:center;
+    font-size:22px;
+    font-weight:bold;
+    background:white;
+    color:black;
+}
+
+.cartonGanador .figura{
+    background:limegreen;
+    color:white;
+}
+
+.cartonGanador .free{
+    background:gold;
+}
+
+#figurasContenedor{
+    flex:1;
+    background:white;
+    border-radius:10px;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:15px;
+    flex-wrap:wrap;
+    overflow:auto;
+}
+
+.figuraBox{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+.cartonGuia{
+    border-collapse:collapse;
+}
+
+.cartonGuia td{
+    width:30px;
+    height:30px;
+    border:2px solid #999;
+}
+</style>
+</head>
+<div id="overlayGanador" style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.95);
+display:none;
+justify-content:center;
+align-items:center;
+z-index:999999;
+color:white;
+">
+</div>
+
+<body>
+
+<div class="contenedor">
+
+    <div id="tablero" class="tablero"></div>
+
+    <div class="inferior">
+
+        <div id="camaraBox">
+            <img src="/stream">
+        </div>
+
+        <div id="numeroBox">
+            <div id="numeroGrande">--</div>
+        </div>
+        <div id="acumuladoBingo" style="
+    width:20%;
+    background:black;
+    color:gold;
+    border-radius:10px;
+    padding:15px;
+    text-align:center;
+    font-weight:bold;
+    display:none;
+">
+  🎱 BALOTAS: <span id="contadorBalotas">0</span> / 40
+  <br><br>
+
+  💰 ACUMULADO: $ <span id="valorAcumulado">0</span>
+
+</div>
+
+        <div id="figurasContenedor"></div>
+
+    </div>
+
+</div>
+<script src="config.js"></script>
+<script>
+    let valorAcumulado = 0;
+let indiceGanador = -1;
+const tablero = document.getElementById("tablero");
+
+const letras = ['B','I','N','G','O'];
+const clases = ['b','i','n','g','o'];
+
+for(let l=0;l<5;l++){
+
+    let letra=document.createElement("div");
+    letra.className="letraFila";
+    letra.innerText=letras[l];
+
+    tablero.appendChild(letra);
+
+    let inicio=l*15+1;
+    let fin=inicio+14;
+
+    for(let i=inicio;i<=fin;i++){
+
+        let c=document.createElement("div");
+
+        c.classList.add("casilla");
+        c.classList.add(clases[l]);
+
+        c.id="n"+i;
+        c.innerText=i;
+
+        tablero.appendChild(c);
+    }
+}
+
+let figurasDB=[];
+
+async function cargarFigurasDB(){
+
+    let r=await fetch("/figuras_db.json?x="+Date.now());
+    let d=await r.json();
+
+    figurasDB=d.figuras || [];
+}
+
+function dibujarFiguraEn(contenedor,nombre){
+
+    let figura =
+    figurasDB.find(f => f.nombre === nombre);
+
+    if(!figura) return;
+
+    let tabla = document.createElement("table");
+    tabla.className = "cartonGuia";
+
+    for(let r=0;r<5;r++){
+
+        let tr=document.createElement("tr");
+
+        for(let c=0;c<5;c++){
+
+            let td=document.createElement("td");
+
+            let index=(r*5)+c;
+
+            if(index===12){
+                td.classList.add("free");
+            }
+
+            if(figura.posiciones.includes(index)){
+                td.classList.add("activa");
+            }
+
+            tr.appendChild(td);
+        }
+
+        tabla.appendChild(tr);
+    }
+
+    contenedor.appendChild(tabla);
+}
+
+function actualizarAcumulado(figuraActual,cantidadBalotas){
+
+    let panel =
+    document.getElementById("acumuladoBingo");
+
+    if(figuraActual.toLowerCase() === "bingo"){
+
+        panel.style.display = "block";
+
+        document.getElementById(
+            "contadorBalotas"
+        ).innerText = cantidadBalotas;
+
+        document.getElementById(
+            "valorAcumulado"
+        ).innerText =
+        valorAcumulado.toLocaleString();
+
+        if(cantidadBalotas >= 62){
+
+            panel.style.display = "none";
+        }
+
+    }else{
+
+        panel.style.display = "none";
+    }
+}
+
+// ganador ---
+function generarHTMLCarton(datosPlano, posiciones){
+
+    let html = "<table class='cartonGanador'>";
+
+    for(let fila=0; fila<5; fila++){
+
+        html += "<tr>";
+
+        for(let columna=0; columna<5; columna++){
+
+            let index = (fila * 5) + columna;
+
+            let clase = "";
+
+            if(index === 12){
+                clase = "free";
+            }
+
+            if(posiciones.includes(index)){
+                clase = "figura";
+            }
+
+            let valor = datosPlano[index] || "";
+
+            html += `
+            <td class="${clase}">
+                ${valor}
+            </td>
+            `;
+        }
+
+        html += "</tr>";
+    }
+
+    html += "</table>";
+
+    return html;
+}
+
+let ultimoGanadorId = null;
+async function escucharGanador(){
+
+    try{
+
+        let r = await fetch(
+            "/ganador_pagado.json?t=" + Date.now()
+        );
+
+        let data = await r.json();
+
+        let lista = data.ganadores || [];
+
+        if(lista.length === 0){
+
+            document
+            .getElementById("overlayGanador")
+            .style.display = "none";
+
+            return;
+        }
+
+        //let ganador = lista[0];
+        let r2 = await fetch("/mostrar_ganador.json?t=" + Date.now());
+let control = await r2.json();
+console.log("CONTROL:", control);
+
+if(control.mostrar < 0){
+    document.getElementById("overlayGanador").style.display = "none";
+    return;
+}
+
+if(control.mostrar >= lista.length){
+    return;
+}
+
+let ganador = lista[control.mostrar];
+
+        let figura =
+        figurasDB.find(
+            f => f.nombre === ganador.figura
+        );
+
+        /*let posiciones =
+        figura?.posiciones || [];*/
+       let estado = await fetch("/estado.json?t=" + Date.now());
+let datosEstado = await estado.json();
+
+let salidos = datosEstado.salidos || [];
+console.log("SALIDOS:", salidos);
+console.log("CARTON:", ganador.datosPlano);
+console.log(typeof salidos[0]);
+console.log(typeof ganador.datosPlano[0]);
+
+let posiciones = [];
+
+for(let i = 0; i < ganador.datosPlano.length; i++){
+
+    let numero = ganador.datosPlano[i];
+
+    // ignorar FREE
+    if(numero === "FREE") continue;
+
+    // 🔥 CLAVE: convertir SOLO aquí
+    if(salidos.includes(Number(numero))){
+        posiciones.push(i);
+    }
+}
+
+let htmlCarton =
+generarHTMLCarton(
+    ganador.datosPlano,
+    posiciones
+);
+        document
+        .getElementById("overlayGanador")
+        .innerHTML = `
+        <div style="
+            background:black;
+            padding:30px;
+            border-radius:20px;
+            border:5px solid gold;
+            text-align:center;
+        ">
+
+            <h1>🏆 GANADOR 🏆</h1>
+
+            <h2>${ganador.vendedor || ""}</h2>
+
+            <h2>Módulo: ${ganador.modulo}</h2>
+
+            <h2>Cartón: ${ganador.carton}</h2>
+
+            <h2>${ganador.figura}</h2>
+
+            ${htmlCarton}
+
+        </div>
+        `;
+
+        document
+        .getElementById("overlayGanador")
+        .style.display = "flex";
+
+    }catch(e){
+
+        console.log(e);
+
+    }
+}
+
+
+
+
+setInterval(
+    escucharGanador,
+    1000
+);
+
+async function sincronizar(){
+
+    let r=await fetch("/estado.json?x="+Date.now());
+    let d=await r.json();
+     console.log(d);
+
+    document.querySelectorAll(".casilla")
+    .forEach(x=>x.classList.remove("marcado"));
+
+    let salidos=d.salidos || [];
+
+    salidos.forEach(n=>{
+
+        let c=document.getElementById("n"+n);
+
+        if(c){
+            c.classList.add("marcado");
+        }
+
+    });
+
+    if(salidos.length){
+
+        document.getElementById("numeroGrande")
+        .innerText=salidos[salidos.length-1];
+
+    }
+}
+setInterval(async()=>{
+
+    let r=await fetch("/premios_figuras.json?x="+Date.now());
+    let data=await r.json();
+
+    let cont =
+    document.getElementById("figurasContenedor");
+
+    cont.innerHTML="";
+
+    let figuras=[
+        data.f1,
+        data.f2,
+        data.f3
+    ].filter(Boolean);
+    let estadoRes =
+await fetch("/estado.json");
+
+let estadoData =
+await estadoRes.json();
+
+let cantidadBalotas =
+(estadoData.salidos || []).length;
+
+let acumuladoRes =
+await fetch("/acumulado");
+
+let acumuladoData =
+await acumuladoRes.json();
+
+valorAcumulado =
+acumuladoData.valor || 0;
+
+if(figuras.length){
+
+    actualizarAcumulado(
+        figuras[0],
+        cantidadBalotas
+    );
+}
+
+    figuras.forEach(fig=>{
+
+        let box=document.createElement("div");
+        box.className="figuraBox";
+
+        let titulo=document.createElement("div");
+        titulo.innerText=fig;
+        titulo.style.fontWeight="bold";
+
+        box.appendChild(titulo);
+
+        let premios={
+            [data.f1]:data.p1,
+            [data.f2]:data.p2,
+            [data.f3]:data.p3
+        };
+
+        let premio=document.createElement("div");
+        premio.innerText=
+        "$ "+Number(
+            premios[fig] || 0
+        ).toLocaleString();
+
+        premio.style.color="green";
+        premio.style.fontWeight="bold";
+        premio.style.fontSize = "40px";
+
+        box.appendChild(premio);
+
+        dibujarFiguraEn(box,fig);
+
+        cont.appendChild(box);
+
+    });
+
+},1000);
+async function pantallaCompleta(){
+
+    try{
+
+        if(!document.fullscreenElement){
+
+            await document.documentElement.requestFullscreen();
+
+        }
+
+    }catch(e){
+
+        console.log(e);
+
+    }
+
+}
+
+async function iniciar(){
+
+    await cargarFigurasDB();
+
+    sincronizar();
+
+   
+
+    setInterval(sincronizar,500);
+
+    pantallaCompleta();
+}
+
+iniciar();
+
+</script>
+
+</body>
+</html>

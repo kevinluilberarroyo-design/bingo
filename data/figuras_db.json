@@ -1,0 +1,56 @@
+{
+  "figuras": [
+
+    { "nombre": "linea_horizontal_1", "posiciones": [0,1,2,3,4] },
+    { "nombre": "linea_horizontal_2", "posiciones": [5,6,7,8,9] },
+    { "nombre": "linea_horizontal_3", "posiciones": [10,11,12,13,14] },
+    { "nombre": "linea_horizontal_4", "posiciones": [15,16,17,18,19] },
+    { "nombre": "linea_horizontal_5", "posiciones": [20,21,22,23,24] },
+
+    { "nombre": "linea_vertical_1", "posiciones": [0,5,10,15,20] },
+    { "nombre": "linea_vertical_2", "posiciones": [1,6,11,16,21] },
+    { "nombre": "linea_vertical_3", "posiciones": [2,7,12,17,22] },
+    { "nombre": "linea_vertical_4", "posiciones": [3,8,13,18,23] },
+    { "nombre": "linea_vertical_5", "posiciones": [4,9,14,19,24] },
+
+    { "nombre": "diagonal_principal", "posiciones": [0,6,12,18,24] },
+    { "nombre": "diagonal_secundaria", "posiciones": [4,8,12,16,20] },
+
+    { "nombre": "x_completa", "posiciones": [0,6,12,18,24,4,8,16,20] },
+
+    { "nombre": "esquinas", "posiciones": [0,4,20,24] },
+
+    { "nombre": "cuadro_centro", "posiciones": [6,7,8,11,12,13,16,17,18] },
+
+    { "nombre": "cruz", "posiciones": [2,7,12,17,22,10,11,13,14] },
+
+    { "nombre": "T_arriba", "posiciones": [0,1,2,3,4,7,12,17,22] },
+
+    { "nombre": "T_abajo", "posiciones": [20,21,22,23,24,7,12,17,2] },
+
+    { "nombre": "L", "posiciones": [0,5,10,15,20,21,22,23,24] },
+
+    { "nombre": "L_invertida", "posiciones": [4,9,14,19,24,20,21,22,23] },
+
+    { "nombre": "marco", "posiciones": [0,1,2,3,4,5,9,10,14,15,19,20,21,22,23,24] },
+
+    { "nombre": "rombo", "posiciones": [2,6,8,10,12,14,16,18,22] },
+
+    { "nombre": "diamante_pequeno", "posiciones": [7,11,12,13,17] },
+
+    { "nombre": "cuatro_esquinas_mas_centro", "posiciones": [0,4,20,24,12] },
+
+    { "nombre": "escalera", "posiciones": [0,6,12,18,24,1,7,13,19] },
+
+    { "nombre": "doble_linea_horizontal", "posiciones": [0,1,2,3,4,20,21,22,23,24] },
+
+    { "nombre": "doble_linea_vertical", "posiciones": [0,5,10,15,20,4,9,14,19,24] },
+
+    { "nombre": "cruz_pequena", "posiciones": [7,11,12,13,17] },
+
+    { "nombre": "cuadro_grande_centro", "posiciones": [6,7,8,11,13,16,17,18] },
+
+    { "nombre": "bingo", "posiciones": [0,1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24] }
+
+  ]
+}

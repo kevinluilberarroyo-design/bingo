@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Voletería</title>
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    font-family:Arial;
+    margin:0;
+    padding:20px;
+}
+
+h1{
+    color:gold;
+    text-align:center;
+}
+
+.panel{
+    background:#222;
+    padding:20px;
+    border-radius:10px;
+    max-width:500px;
+    margin:auto;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    font-size:20px;
+    margin-top:10px;
+    border:none;
+    border-radius:8px;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    margin-top:15px;
+    font-size:20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn{
+    background:gold;
+    color:black;
+}
+
+#resultado{
+    margin-top:20px;
+    text-align:center;
+    font-size:25px;
+}
+
+.ticket{
+    background:#333;
+    padding:20px;
+    border-radius:10px;
+    margin-top:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🎟️ Voletería Promocional</h1>
+
+<div class="panel">
+<h2>🎯 Administrador de Rifas</h2>
+
+<input
+type="text"
+id="nombreRifa"
+placeholder="Nombre de la rifa">
+
+<label>Fecha Inicio</label>
+<input
+type="datetime-local"
+id="fechaInicio">
+
+<label>Fecha Fin</label>
+<input
+type="datetime-local"
+id="fechaFin">
+<input type="number" id="maxNumero" placeholder="Cantidad de números de la rifa">
+
+<button class="btn"
+onclick="crearRifa()">
+
+➕ Crear Rifa
+
+</button>
+
+<hr style="margin:20px 0;">
+
+<h2>🎟️ Seleccionar Rifa</h2>
+
+<select id="rifaSelect" style="
+width:100%;
+padding:15px;
+font-size:20px;
+border-radius:8px;
+margin-top:10px;
+">
+</select>
+
+<hr style="margin:20px 0;">
+<input
+type="text"
+id="nombre"
+placeholder="Nombre completo">
+
+<input
+type="text"
+id="cc"
+placeholder="Cédula">
+
+<button class="btn" onclick="generarBoleta()">
+🖨️ Generar Boleta
+</button>
+
+<div id="resultado"></div>
+
+<div id="plantillaBoleta"
+style="
+display:none;
+width:300px;
+background:white;
+color:black;
+padding:10px;
+font-family:Arial;
+box-sizing:border-box;
+">
+
+<center>
+
+<img src="boleta.png"
+style="
+width:280px;
+margin-bottom:10px;
+">
+
+</center>
+
+<hr>
+
+<div id="numBoleta"
+style="
+font-size:55px;
+font-weight:bold;
+text-align:center;
+margin:15px 0;
+">
+0000
+</div>
+
+<hr>
+
+<div style="font-size:20px;">
+
+<b>Nombre:</b>
+
+<div id="nomBoleta"></div>
+
+<br>
+
+<b>Cédula:</b>
+
+<div id="ccBoleta"></div>
+
+<br>
+
+<b>Fecha:</b>
+
+<div id="fechaBoleta"></div>
+
+</div>
+
+<hr>
+
+<center>
+
+<h2>¡MUCHA SUERTE!</h2>
+
+</center>
+
+</div>
+
+</div>
+
+
+
+<script>
+    qz.websocket.connect().catch(err => {
+    console.log("Ya conectado o error:", err);
+});
+
+const API = window.location.origin;
+
+// VALIDAR LOGIN
+const usuario = localStorage.getItem("usuario");
+
+if(!usuario){
+    location.href = "login.html";
+}
+
+
+// GENERAR BOLETA
+async function generarBoleta(){
+
+    let nombre =
+    document.getElementById("nombre").value.trim();
+
+    let cc =
+    document.getElementById("cc").value.trim();
+
+    if(!nombre || !cc){
+        alert("Complete todos los campos");
+        return;
+    }
+// VALIDAR CONFIG
+let rifaId =
+document.getElementById("rifaSelect").value;
+
+if(!rifaId){
+
+    alert("Seleccione una rifa");
+
+    return;
+
+}
+
+let resRifa =
+await fetch(API + "/rifas");
+
+let dataRifas =
+await resRifa.json();
+
+let config =
+dataRifas.rifas.find(r =>
+    r.id == rifaId
+);
+
+if(!config){
+
+    alert("Rifa no encontrada");
+
+    return;
+}
+
+if(!config){
+
+    alert("Configure primero la rifa");
+
+    return;
+}
+
+
+// VALIDAR FECHA
+let ahora = new Date();
+
+let inicio = new Date(config.inicio);
+
+let fin = new Date(config.fin);
+
+if(ahora < inicio){
+
+    alert("La rifa aún no inicia");
+
+    return;
+
+}
+
+if(ahora > fin){
+
+    alert("La rifa ya terminó");
+
+    return;
+
+}
+    try{
+
+        let res = await fetch(API + "/generar-boleta",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+    nombre,
+    cc,
+    rifaId: config.id
+})
+        });
+
+        let data = await res.json();
+
+        let resultado =
+        document.getElementById("resultado");
+
+        if(data.ok){
+
+           resultado.innerHTML = `
+<div class="ticket">
+
+<h2>🎟️ ${config.nombre}</h2>
+
+<h1>${data.numero}</h1>
+
+<p>👤 ${nombre}</p>
+<p>🪪 ${cc}</p>
+
+<button class="btn"
+onclick="imprimirBoleta(
+'${data.numero}',
+'${nombre}',
+'${cc}',
+'${config.nombre}'
+)">
+🖨️ Imprimir
+</button>
+
+</div>
+`;
+        }else{
+
+            resultado.innerHTML = `
+            ❌ ${data.mensaje}
+            `;
+        }
+
+    }catch(e){
+
+        alert("Error servidor");
+
+    }
+
+}
+
+/*async function imprimirBoleta(numero,nombre,cc,nombreRifa){
+
+try{
+
+document.getElementById("numBoleta").innerText =
+numero;
+
+document.getElementById("nomBoleta").innerText =
+nombre;
+
+document.getElementById("ccBoleta").innerText =
+cc;
+
+document.getElementById("fechaBoleta").innerText =
+new Date().toLocaleString();
+
+let div =
+document.getElementById("plantillaBoleta");
+
+div.style.display="block";
+
+let canvas = await html2canvas(div,{
+    scale:2,
+    backgroundColor:"#FFFFFF"
+});
+let imagen =
+canvas.toDataURL("image/png");
+
+div.style.display="none";
+
+const config =
+qz.configs.create("POS-58");
+
+await qz.print(config,[{
+    type: "pixel",
+    format: "image",
+    flavor: "base64",
+    data: imagen
+}]);
+
+alert("Boleta impresa");
+
+}catch(e){
+
+console.log(e);
+
+alert("Error imprimiendo");
+
+}
+
+}*/
+
+async function imprimirBoleta(numero,nombre,cc,nombreRifa){
+
+try{
+
+    document.getElementById("numBoleta").innerText = numero;
+
+    document.getElementById("nomBoleta").innerText = nombre;
+
+    document.getElementById("ccBoleta").innerText = cc;
+
+    document.getElementById("fechaBoleta").innerText =
+    new Date().toLocaleString();
+
+    let div =
+    document.getElementById("plantillaBoleta");
+
+    div.style.display = "block";
+
+    await new Promise(r => setTimeout(r,200));
+
+    let canvas = await html2canvas(div,{
+        scale:2,
+        backgroundColor:"#FFFFFF"
+    });
+
+    let imagen =
+    canvas.toDataURL("image/png");
+
+    div.style.display = "none";
+
+    const config =
+    qz.configs.create("POS-58");
+
+await qz.print(config,[{
+    type: "pixel",
+    format: "image",
+    flavor: "base64",
+    data: imagen
+}]);
+
+await qz.print(config,[
+    "\x1D\x56\x42\x00"
+]);
+
+    alert("Boleta impresa");
+
+}catch(e){
+
+    console.log(e);
+
+    alert("Error imprimiendo");
+
+}
+}
+// GUARDAR CONFIG
+
+
+
+// CARGAR CONFIG
+
+
+
+// ===============================
+// CREAR RIFA
+// ===============================
+
+async function crearRifa(){
+
+    let nombre =
+    document.getElementById("nombreRifa").value;
+
+    let inicio =
+    document.getElementById("fechaInicio").value;
+
+    let fin =
+    document.getElementById("fechaFin").value;
+    
+
+    if(!nombre || !inicio || !fin){
+
+        alert("Complete todos los campos");
+
+        return;
+    }
+
+    let res = await fetch(API + "/crear-rifa",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+            nombre,
+            inicio,
+            fin,
+            maxNumero: document.getElementById("maxNumero").value
+        })
+
+    });
+
+    let data = await res.json();
+
+    if(data.ok){
+
+        alert("✅ Rifa creada");
+
+        cargarRifas();
+
+    }else{
+
+        alert("Error");
+
+    }
+
+}
+
+
+// ===============================
+// CARGAR RIFAS
+// ===============================
+
+async function cargarRifas(){
+
+    let res =
+    await fetch(API + "/rifas");
+
+    let data =
+    await res.json();
+
+    let select =
+    document.getElementById("rifaSelect");
+
+    select.innerHTML = "";
+
+    data.rifas.forEach(r => {
+
+        let option =
+        document.createElement("option");
+
+        option.value = r.id;
+
+        option.textContent =
+        r.nombre;
+
+        select.appendChild(option);
+
+    });
+
+}
+
+cargarRifas();
+</script>
+
+</body>
+</html>

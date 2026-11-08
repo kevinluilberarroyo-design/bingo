@@ -1,0 +1,2204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BINGO PRO FÍSICO</title>
+<link rel="manifest" href="manifest.json">
+
+
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+
+<style>
+body 
+
+{ font-family: Arial; background: linear-gradient(45deg,#ffcc00,#ff6699,#66ccff); margin:0;}
+.container { display:flex; justify-content:space-between; padding:20px;}
+.tablero-area { width:60%; }
+
+.tablero { background:white; border:5px solid black; padding:10px; border-radius:10px;}
+.fila { display:flex; }
+.numero { width:35px; height:35px; display:flex; align-items:center; justify-content:center; border:1px solid black; margin:1px; font-weight:bold;}
+.activo { background:green; color:white;}
+.letra { width:30px; text-align:center; font-weight:bold;}
+
+.carton { margin-top:10px; background:#eee; padding:10px; border:3px solid black;}
+.free { background:gold;}
+
+.cartones-guia { display:flex; justify-content:space-between; margin-top:10px;}
+.carton-guia { width:32%; background:#ddd; padding:5px; border:3px solid oklab(0% 0 0); text-align:center;}
+.carton-guia .numero { width:20px; height:20px; font-size:10px;}
+
+.premio { font-weight:bold; margin:5px 0; }
+
+.panel { width:35%; background:white; padding:15px; border:4px solid black;}
+button { padding:6px; margin:4px;}
+input,select { width:90%; margin:5px;}
+#numeroGrande{
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 120px;
+  font-weight: bold;
+  color: white;
+  background: black;
+  padding: 40px 80px;
+  border-radius: 20px;
+  z-index: 9999;
+  opacity: 0;
+  box-shadow: 0 0 30px gold;
+}
+
+.animarNumero{
+  animation: aparecer 1s ease;
+}
+
+
+@keyframes aparecer{
+  0% { transform: translate(-50%, -50%) scale(0); opacity:0; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity:1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity:1; }
+}
+#contadorBalota{
+    position: fixed;
+    top: 25px;
+    right: 25px;
+
+    width: 100px;
+    height: 100px;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    background: #111;
+    color: gold;
+
+    border: 5px solid gold;
+    border-radius: 50%;
+
+    font-size: 55px;
+    font-weight: bold;
+
+    z-index: 10000;
+
+    box-shadow: 0 0 25px gold;
+}
+
+</style>
+</head>
+
+<body>
+
+   
+
+  <!--audio id="beepSound" src="beep.mp3" preload="auto"></audio-->
+
+<div class="container">
+
+<div class="tablero-area">
+<div id="tablero" class="tablero"></div>
+<div id="numeroGrande">--</div>
+<div id="numeroGrande">--</div>
+    <h3>📷 Cámara en vivo</h3>
+<video id="camara" width="250" autoplay playsinline style="border:3px solid black;"></video>
+
+<br>
+<div style="padding:10px; background:#222;">
+<button style="padding:10px 20px;" onclick="history.back()">⬅ Volver</button>
+
+<button style="padding:10px 20px;" onclick="location.href='login.html'">🏠 Inicio</button>
+</div>
+
+<button onclick="modoPresentacion()">🎥 Modo presentación</button>
+<button onclick="abrirTableroTV()">
+📺 TABLERO TV
+</button>
+
+<button onclick="abrirTV()">📺 Abrir pantalla TV</button>
+<button onclick="activarPantallaTV()">📺 Activar pantalla TV manual</button>
+
+<button onclick="modoNormal()">🔧 Modo control</button>
+
+<div class="carton">
+<h3>Cartón en juego</h3>
+
+<button onclick="crearCarton()">🎲 Nuevo cartón</button>
+
+<div id="carton"></div>
+</div>
+
+<div class="cartones-guia">
+<div class="carton-guia"><h4>Guía 1</h4><div class="premio">Premio: $<span id="p1">0</span></div><div id="g1"></div></div>
+<div class="carton-guia"><h4>Guía 2</h4><div class="premio">Premio: $<span id="p2">0</span></div><div id="g2"></div></div>
+<div class="carton-guia"><h4>Guía 3</h4><div class="premio">Premio: $<span id="p3">0</span></div><div id="g3"></div></div>
+</div>
+
+</div>
+
+<div class="panel">
+
+<h3>🎮 CONTROL</h3>
+
+<input id="num" placeholder="Número" onkeypress="if(event.key==='Enter') cantar()">
+
+<button onclick="cantar()">🎤 Cantar</button>
+
+
+<h4>Figuras</h4>
+
+<select id="f1">
+<option value="linea">Línea</option>
+<option value="x">X</option>
+<option value="esquinas">Esquinas</option>
+<option value="bingo">Bingo</option>
+</select>
+
+<select id="f2">
+<option value="">Ninguna</option>
+<option value="linea">Línea</option>
+<option value="x">X</option>
+<option value="esquinas">Esquinas</option>
+<option value="bingo">Bingo</option>
+</select>
+
+<select id="f3">
+<option value="">Ninguna</option>
+<option value="linea">Línea</option>
+<option value="x">X</option>
+<option value="esquinas">Esquinas</option>
+<option value="bingo">Bingo</option>
+</select>
+
+<button onclick="configurar()">Configurar Figuras</button>
+
+<hr>
+
+<h4>💰 VENTAS</h4>
+
+<label>Precio por cartón:</label>
+<input id="precioCarton" type="number" step="1" min="0" placeholder="Ej: 5000">
+<label>Porcentaje premio (%):</label>
+<input id="porcentajePremio" type="number" step="1" min="0" max="100" placeholder="Ej: 70 (opcional)">
+<div id="ganadorPrincipal" style="
+  font-size: 40px;
+  color: gold;
+  text-align: center;
+  margin: 20px;
+  font-weight: bold;
+"></div>    
+
+
+
+<h4>Ganadores</h4>
+
+<button onclick="iniciarJuego()">Iniciar juego</button>
+<!--ul id="ganadores"></ul-->
+<select id="selectorGanadorTV">
+    <option value="-1">
+        No mostrar ganador
+    </option>
+</select>
+
+<button onclick="actualizarGanadorTV()">
+    Mostrar en TV
+</button>
+<button onclick="pagarPremios()">💰 Pagar premios</button>
+<label>Premio figura 1</label>
+<input id="pf1" type="number" placeholder="Premio figura 1">
+
+<label>Premio figura 2</label>
+<input id="pf2" type="number" placeholder="Premio figura 2">
+
+<label>Premio figura 3</label>
+<input id="pf3" type="number" placeholder="Premio figura 3">
+<button onclick="presentarJuego()">🎤 Animar jugadores</button>
+<button onclick="terminar()">Terminar juego</button>
+<h3>Ventas en tiempo real</h3>
+<ul id="listaVentasServidor"></ul>
+<h3>💼 Ventas por vendedor</h3>
+<div id="ventasPorVendedor"></div>
+<hr>
+<div style="
+  background:#111;
+  padding:15px;
+  border-radius:15px;
+  margin-top:10px;
+">
+
+  <h3 style="color:gold;">
+    💰 Acumulado Bingo
+  </h3>
+
+  <input
+    type="number"
+    id="inputAcumulado"
+    placeholder="Valor acumulado"
+    style="
+      padding:10px;
+      font-size:20px;
+      width:200px;
+    "
+  >
+
+  <button onclick="guardarAcumulado()">
+    Guardar
+  </button>
+
+</div>
+<button onclick="mostrarComunicado()">📢 Mostrar comunicado</button>
+<button onclick="ocultarComunicado()">❌ Ocultar comunicado</button>
+
+
+
+
+<h3>📊 RESUMEN DEL JUEGO</h3>
+
+<h4>Módulos vendidos: <span id="totalVendidos">0</span></h4>
+<h4>Total vendido: $<span id="totalDinero">0</span></h4>
+<h4>Premio: $<span id="premio">0</span></h4>
+<h4>Ganancia: $<span id="ganancia">0</span></h4>
+
+
+<script src="config.js"></script>
+<script>
+    const CLIENT_ID = "VENDEDOR_01";
+
+    function marcarConectado(url){
+    fetch(url + "/register", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+            cliente: CLIENT_ID,
+            estado: "conectado"
+        })
+    });
+
+    document.getElementById("estadoConexion").innerText = "🟢 Conectado";
+}
+function revisarSesion(){
+
+  if(localStorage.getItem("logueado") !== "true"){
+    window.location.href = "login.html";
+  }
+
+}
+
+revisarSesion();
+let select =
+document.getElementById(
+    "selectorGanadorTV"
+);
+
+select.innerHTML =
+'<option value="-1">No mostrar ganador</option>';
+
+ganadores.forEach((g,i)=>{
+
+    select.innerHTML += `
+    <option value="${i}">
+        ${g.vendedor}
+        - Módulo ${g.modulo}
+        - ${g.figura}
+    </option>
+    `;
+
+});
+
+</script>
+
+<script>
+
+    let figurasDB = [];
+    let figurasActivas = [];
+    let indiceFiguraActual = 0;
+    let premioF1 = 0;
+    let premioF2 = 0;
+    let premioF3 = 0;
+
+    function normalizarTabla(tabla){
+
+       // 🟢 Formato nuevo
+      if(tabla.filas){
+        return tabla.filas.flat();
+      }
+
+      // 🔴 Formato viejo
+      if(tabla.datos){
+        return tabla.datos;
+      }
+
+      return [];
+   }
+    
+
+   
+   let yaHayGanador = false;
+    let ganadoresGlobal = [];
+     let porcentajeDefault = 70; // 👈 este es el valor base del juego
+     let rangos={B:[1,15],I:[16,30],N:[31,45],G:[46,60],O:[61,75]};
+
+
+  // ===== VENDEDORES =====
+      let vendedores = [
+ {codigo:"1111", nombre:"Juan"},
+ {codigo:"2222", nombre:"Maria"}
+   ];
+
+let vendedorActivo = null;
+let salidos=[], juego=false;
+let figuras=[null,null,null], indice=0, totalVentas=0;
+///////////////////////////////
+//camara
+function detenerCamara(){
+    if(streamCamara){
+        streamCamara.getTracks().forEach(track => track.stop());
+    }
+}
+
+
+
+
+
+let videoCam = null;
+let videoStream = null;
+
+let streamCamara = null;
+let canvasCam = document.createElement("canvas");
+let ctxCam = canvasCam.getContext("2d");
+
+
+
+
+
+function enviarComunicado(){
+    let texto = prompt("Escribe el comunicado:");
+
+    fetch('/comunicado', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+            activo: true,
+            texto
+        })
+    });
+}
+
+function ocultarComunicado(){
+
+  fetch('/comunicado', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      activo: false,
+      tipo: "",
+      texto: "",
+      ganador: null
+    })
+  });
+
+}
+async function guardarAcumulado(){
+
+    let valor =
+    document.getElementById("inputAcumulado").value;
+
+    await fetch("/guardarAcumulado", {
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body: JSON.stringify({
+            valor
+        })
+
+    });
+
+    alert("✅ Acumulado guardado");
+}
+
+
+async function iniciarCamara() {
+
+  try {
+
+    // 🔥 buscar dispositivos
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    // 🔥 buscar OBS Virtual Camera
+    const obsCam = devices.find(d =>
+      d.label.includes("OBS")
+    );
+
+    if(!obsCam){
+      alert("❌ No se encontró OBS Virtual Camera");
+      return;
+    }
+
+    // 🔥 abrir OBS camera
+    streamCamara = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: obsCam.deviceId,
+        width: 1280,
+        height: 720
+      },
+      audio: false
+    });
+
+    // 🔥 mostrar video
+    const video = document.getElementById("camara");
+
+    video.srcObject = streamCamara;
+
+    await video.play();
+
+    console.log("📷 OBS Virtual Camera iniciada");
+
+    // 🔥 enviar frames al servidor
+    setInterval(() => {
+
+      if (!video.videoWidth) return;
+
+      canvasCam.width = video.videoWidth;
+      canvasCam.height = video.videoHeight;
+
+      ctxCam.drawImage(video, 0, 0, canvasCam.width, canvasCam.height);
+
+      let base64 = canvasCam.toDataURL("image/jpeg", 0.6);
+
+      fetch("/frame", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64.split(",")[1]
+        })
+      }).catch(err => console.log("frame error:", err));
+
+    }, 150);
+
+  } catch (e) {
+
+    console.log("❌ Error cámara:", e);
+
+    alert("No se pudo abrir la cámara: " + e.message);
+
+  }
+}
+
+function abrirTableroTV(){
+
+    window.open(
+        "/pantalla_tablero.html",
+        "TABLERO_TV",
+        "width=1280,height=720"
+    );
+
+}
+
+function abrirPantallaGanador(){
+
+    window.open(
+        "/pantalla_figuramanual.html",
+        "PANTALLA_GANADOR",
+        "width=1280,height=720"
+    );
+
+    console.log("🏆 Pantalla de ganador abierta");
+}
+function abrirTV(){
+
+   window.open(
+      "/presentacion.html",
+      "_blank",
+      "width=1280,height=720"
+   );
+
+}
+///////presentar///////////
+
+
+function activarPantallaTV(){
+     window.open(
+        "/pantalla_figuramanual.html",
+        "TV",
+        "width=1280,height=720"
+    );
+
+    // opcional: guardar estado en servidor
+    fetch("/modo-tv", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ modo: "manual" })
+    });
+
+    console.log("📺 Pantalla TV manual activada");
+}
+
+
+function modoPresentacion(){
+
+    // ocultar panel de control
+    document.querySelector(".panel").style.display = "none";
+
+    // agrandar tablero
+    document.querySelector(".tablero-area").style.width = "100%";
+
+    // pantalla completa
+    document.documentElement.requestFullscreen();
+
+    document.body.style.zoom = "1.3";
+    
+
+}
+function modoNormal(){
+
+    document.querySelector(".panel").style.display = "block";
+
+    document.querySelector(".tablero-area").style.width = "60%";
+
+    if(document.fullscreenElement){
+        document.exitFullscreen();
+    }
+}
+function mostrarNumeroGrande(n){
+
+    let letra = obtenerLetra(n);
+    let div = document.getElementById("numeroGrande");
+
+    div.innerText = letra + " " + n;
+
+    div.style.opacity = "1";
+    div.classList.remove("animarNumero");
+
+    // reiniciar animación
+    void div.offsetWidth;
+
+    div.classList.add("animarNumero");
+
+    // ocultar después
+    setTimeout(()=>{
+        div.style.opacity = "0";
+    }, 3000);
+}
+
+
+/////////////////////////////////////////////////////////////////
+
+
+setInterval(async () => {
+
+    try {
+
+        let res = await fetch('/ventas.json');
+        let data = await res.json();
+
+        let ventas = data.ventas || [];
+
+        let totalModulos = ventas.length;
+
+        let precioInput = document.getElementById('precioCarton');
+        let porcentajeInput = document.getElementById('porcentajePremio');
+
+        let precio = precioInput && precioInput.value ? Number(precioInput.value) : 0;
+        let porcentaje = porcentajeInput && porcentajeInput.value ? Number(porcentajeInput.value) : porcentajeDefault;
+
+        // =========================
+        // 🟢 UI LISTA DE VENTAS
+        // =========================
+        let lista = document.getElementById("listaVentasServidor");
+
+        if (lista) {
+            lista.innerHTML = "";
+
+            ventas.forEach(v => {
+                let li = document.createElement("li");
+                li.innerHTML = `🎟️ ${v.codigo} - ${v.vendedor}`;
+                lista.appendChild(li);
+            });
+        }
+
+        // =========================
+        // 🟡 RESUMEN POR VENDEDOR
+        // =========================
+        let resumen = {};
+
+        ventas.forEach(v => {
+
+            let vendedor = v.vendedor || "SIN NOMBRE";
+
+            if (!resumen[vendedor]) {
+                resumen[vendedor] = {
+                    cantidad: 0,
+                    total: 0
+                };
+            }
+
+            resumen[vendedor].cantidad++;
+            resumen[vendedor].total += precio;
+        });
+
+        let divResumen = document.getElementById("ventasPorVendedor");
+
+        if (divResumen) {
+
+            divResumen.innerHTML = "";
+
+            for (let nombre in resumen) {
+
+                let datos = resumen[nombre];
+
+                let p = document.createElement("p");
+
+                p.innerHTML = `
+                    👤 <b>${nombre}</b><br>
+                    🎟️ Vendidos: ${datos.cantidad}<br>
+                    💰 Total: $${datos.total.toLocaleString()}
+                    <hr>
+                `;
+
+                divResumen.appendChild(p);
+            }
+        }
+
+        // =========================
+        // 🔵 CÁLCULO PRINCIPAL
+        // =========================
+        let totalDinero = totalModulos * precio;
+        let premio = Math.round(totalDinero * (porcentaje / 100));
+        let ganancia = totalDinero - premio;
+
+        // guardar backend
+        await fetch('/guardarTotalDinero', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ totalDinero })
+        });
+
+        // =========================
+        // 🟣 ACTUALIZAR UI FINAL
+        // =========================
+        let v = document.getElementById('totalVendidos');
+        let d = document.getElementById('totalDinero');
+        let p = document.getElementById('premio');
+        let g = document.getElementById('ganancia');
+
+        if (v) v.innerText = totalModulos;
+        if (d) d.innerText = totalDinero.toLocaleString();
+        if (p) p.innerText = premio.toLocaleString();
+        if (g) g.innerText = ganancia.toLocaleString();
+        let premiosReales =
+    (Number(document.getElementById("pf1").value) || 0) +
+    (Number(document.getElementById("pf2").value) || 0) +
+    (Number(document.getElementById("pf3").value) || 0);
+
+let gananciaReal = totalDinero - premiosReales;
+
+fetch("/guardarContabilidad", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        vendido: totalDinero,
+        premios: premiosReales,
+        ganancia: gananciaReal
+    })
+});
+
+    } catch (err) {
+        console.log("Error ventas:", err);
+    }
+
+}, 2000);
+/*setInterval(async () => {
+
+    try {
+
+        let res = await fetch('/ventas.json');
+        let data = await res.json();
+
+        let ventas = data.ventas || [];
+
+        let lista = document.getElementById("listaVentasServidor");
+
+        if(lista){
+            lista.innerHTML = "";
+
+            ventas.forEach(v => {
+
+                let li = document.createElement("li");
+
+                li.innerHTML = `🎟️ ${v.codigo} - ${v.vendedor}`;
+
+                lista.appendChild(li);
+
+            });
+            // 🔥 RESUMEN POR VENDEDOR
+
+             let totalModulos = ventas.length;
+
+        let precioInput = document.getElementById('precioCarton');
+
+        let porcentajeInput = document.getElementById('porcentajePremio');
+
+        if (!precioInput || !porcentajeInput) return;
+
+       let precio = Number(precioInput.value);
+       
+
+         if(precio <= 0) return;
+let resumen = {};
+
+ventas.forEach(v => {
+
+    let vendedor = v.vendedor || "SIN NOMBRE";
+
+    if(!resumen[vendedor]){
+        resumen[vendedor] = {
+            cantidad: 0,
+            total: 0
+        };
+    }
+
+    resumen[vendedor].cantidad++;
+
+    resumen[vendedor].total += precio;
+
+});
+
+// 🔥 MOSTRAR EN PANTALLA
+let divResumen = document.getElementById("ventasPorVendedor");
+
+if(divResumen){
+
+    divResumen.innerHTML = "";
+
+    for(let nombre in resumen){
+
+        let datos = resumen[nombre];
+
+        let p = document.createElement("p");
+
+        p.innerHTML = `
+            👤 <b>${nombre}</b><br>
+            🎟️ Vendidos: ${datos.cantidad}<br>
+            💰 Total: $${datos.total.toLocaleString()}
+            <hr>
+        `;
+
+        divResumen.appendChild(p);
+    }
+}
+        }
+
+       // let totalModulos = ventas.length;
+
+        //let precioInput = document.getElementById('precioCarton');
+
+        //let porcentajeInput = document.getElementById('porcentajePremio');
+
+       /// if (!precioInput || !porcentajeInput) return;
+
+       //let precio = Number(precioInput.value);
+       
+
+         //if(precio <= 0) return;
+
+        let porcentaje = porcentajeInput.value 
+            ? Number(porcentajeInput.value) 
+            : porcentajeDefault;
+
+        let totalDinero = totalModulos * precio;
+
+        let premio = Math.round(totalDinero * (porcentaje / 100));
+
+        let ganancia = totalDinero - premio;
+        fetch('/guardarTotalDinero', {
+              method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+            totalDinero: totalDinero
+           })
+            });
+
+        // 🔥 SOLO PROTECCIÓN SIN CAMBIAR TU LÓGICA
+        let figurasActivas = [];
+
+        if (typeof figuras !== "undefined" && Array.isArray(figuras)) {
+            figurasActivas = figuras.filter(Boolean);
+        }
+
+        
+
+        let v = document.getElementById('totalVendidos');
+        let d = document.getElementById('totalDinero');
+        let p = document.getElementById('premio');
+        let g = document.getElementById('ganancia');
+
+        if (v) v.innerText = totalModulos;
+        if (d) d.innerText = totalDinero.toLocaleString();
+        if (p) p.innerText = premio.toLocaleString();
+        if (g) g.innerText = ganancia.toLocaleString();
+
+    } catch(err) {
+        console.log("Error ventas:", err);
+    }
+
+}, 2000);*/
+
+
+// Guardar precio automáticamente
+document.getElementById('precioCarton').addEventListener('input', function() {
+    localStorage.setItem('precioCarton', this.value);
+});
+
+// Cargar precio al abrir
+window.onload = function() {
+    let precioGuardado = localStorage.getItem('precioCarton');
+    if (precioGuardado) {
+        document.getElementById('precioCarton').value = precioGuardado;
+    }
+     //mostrarModulos();
+       //modoVendedor();
+    cargarFiguras();
+};
+
+async function iniciarJuego() {
+
+    alert("🚀 Entrando a iniciar juego");
+      
+    let precio = Number(document.getElementById('precioCarton').value);
+
+    if (!precio || precio <= 0) {
+        alert("⚠️ Debes ingresar el precio del cartón antes de iniciar el juego");
+        return;
+    }
+
+    try {
+
+        // 🔹 traer ventas reales del servidor
+        let res = await fetch('/ventas.json');
+        let data = await res.json();
+
+        let ventas = data.ventas || [];
+
+        // ❌ VALIDACIÓN REAL
+        if (ventas.length === 0) {
+            alert("⚠️ No hay módulos vendidos, no puedes iniciar el juego");
+            return;
+        }
+
+        let inputPorcentaje = document.getElementById('porcentajePremio').value;
+
+        let porcentaje = inputPorcentaje 
+            ? Number(inputPorcentaje) 
+            : porcentajeDefault;
+
+        // 🔥 AQUÍ SOLO AGREGAMOS ESTO
+        presentarJuego();
+
+        // ✅ iniciar juego
+        await fetch('/iniciar-juego', { method: 'POST' });
+
+        alert("✅ Juego iniciado correctamente");
+         juego = true;
+          juegoActivo = true;
+
+    } catch (err) {
+        alert("❌ Error conectando con el servidor");
+        console.log(err);
+    }
+   
+}
+
+////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////
+//////
+// TABLERO
+let t=document.getElementById("tablero");
+for(let l in rangos){
+ let fila=document.createElement("div"); fila.className="fila";
+ let letra=document.createElement("div"); letra.className="letra"; letra.innerText=l;
+ fila.appendChild(letra);
+ let [a,b]=rangos[l];
+ for(let i=a;i<=b;i++){
+  let d=document.createElement("div");
+  d.className="numero"; d.id="n"+i; d.innerText=i;
+  fila.appendChild(d);
+ }
+ t.appendChild(fila);
+}
+
+
+// CARTON
+let carton=[];
+function crearCarton(){
+ carton=[];
+ let div=document.getElementById("carton"); div.innerHTML="";
+ let cols=Object.keys(rangos);
+ let usados={B:[],I:[],N:[],G:[],O:[]};
+
+ for(let r=0;r<5;r++){
+  let fila=document.createElement("div"); fila.className="fila";
+  for(let c=0;c<5;c++){
+   let cel=document.createElement("div"); cel.className="numero";
+
+   if(r==2 && c==2){
+    cel.innerText="FREE";
+    cel.classList.add("free");
+    carton.push("FREE");
+   }else{
+    let letra=cols[c];
+    let [a,b]=rangos[letra];
+    let n;
+    do{ n=Math.floor(Math.random()*(b-a+1))+a; }
+    while(usados[letra].includes(n));
+    usados[letra].push(n);
+    cel.innerText=n;
+    carton.push(n);
+   }
+   fila.appendChild(cel);
+  }
+  div.appendChild(fila);
+ }
+}
+crearCarton();
+
+// FIGURAS___-----///
+
+function getFig(nombre){
+
+    let fig = figurasDB.find(f => f.nombre === nombre);
+
+    if(!fig){
+        console.log("❌ Figura no encontrada:", nombre);
+        return [];
+    }
+
+    return fig.posiciones;
+}
+async function cargarFiguras(){
+
+    try{
+        let res = await fetch('/figuras_db.json'); // 👈 aquí el cambio
+        let data = await res.json();
+
+        figurasDB = data.figuras;
+
+        console.log("✅ Figuras cargadas:", figurasDB);
+        console.log("PRIMERA FIGURA:", figuras[0]);
+console.log("SEGUNDA FIGURA:", figuras[1]);
+console.log("TERCERA FIGURA:", figuras[2]);
+
+        cargarFigurasSelect();
+
+    }catch(e){
+        console.log("❌ Error cargando figuras:", e);
+    }
+}
+function cargarFigurasSelect(){
+
+    let selects = ["f1","f2","f3"];
+
+    selects.forEach(id => {
+
+        let select = document.getElementById(id);
+
+        if(!select) return;
+
+        // limpiar
+        select.innerHTML = "";
+
+        // opción vacía
+        let op0 = document.createElement("option");
+        op0.value = "";
+        op0.text = "Ninguna";
+        select.appendChild(op0);
+
+        // llenar desde JSON
+        figurasDB.forEach(f => {
+            let op = document.createElement("option");
+            op.value = f.nombre;
+            op.text = f.nombre;
+            select.appendChild(op);
+        });
+
+    });
+
+    console.log("✅ Selects cargados con figuras");
+}
+
+function pintarGuia(id,f){
+ let div=document.getElementById(id); div.innerHTML="";
+ let c=[];
+ for(let r=0;r<5;r++){
+  let fila=document.createElement("div"); fila.className="fila";
+  for(let c2=0;c2<5;c2++){
+   let cel=document.createElement("div"); cel.className="numero";
+   if(r==2 && c2==2) cel.innerText="FREE";
+   fila.appendChild(cel);
+   c.push(cel);
+  }
+  div.appendChild(fila);
+ }
+ getFig(f).forEach(i=>c[i].classList.add("activo"));
+}
+
+
+
+function configurar(){
+
+ figuras[0] = f1.value;
+ figuras[1] = f2.value;
+ figuras[2] = f3.value;
+
+ let premio1 = Number(document.getElementById("pf1").value) || 0;
+ let premio2 = Number(document.getElementById("pf2").value) || 0;
+ let premio3 = Number(document.getElementById("pf3").value) || 0;
+
+ pintarGuia("g1", figuras[0]);
+
+ if(figuras[1]) pintarGuia("g2", figuras[1]);
+
+ if(figuras[2]) pintarGuia("g3", figuras[2]);
+
+ fetch('/guardarPremiosFiguras', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+
+      f1: figuras[0],
+      p1: premio1,
+
+      f2: figuras[1],
+      p2: premio2,
+
+      f3: figuras[2],
+      p3: premio3
+    })
+ });
+
+}
+
+//________
+
+function generarHTMLCarton(matriz, figura){
+
+    let html = "<table class='carton'>";
+
+    for(let i=0;i<5;i++){
+
+        html += "<tr>";
+
+        for(let j=0;j<5;j++){
+
+            let clase = matriz[i][j].marcado ? "figura" : "";
+
+            html += `<td class="${clase}">
+                        ${matriz[i][j].numero}
+                     </td>`;
+        }
+
+        html += "</tr>";
+    }
+
+    html += "</table>";
+
+    return html;
+}
+
+/////pintando ganadorÇ//////
+
+
+
+async function cargarGanadoresPantalla(){
+
+    let resp = await fetch('/ganadores.json?t=' + Date.now());
+    let data = await resp.json();
+
+    let ganadores = data.ganadores || [];
+
+    let div = document.getElementById("ganadorPrincipal");
+
+    if(ganadores.length === 0){
+        div.innerText = "Sin ganadores";
+        return;
+    }
+
+    let html = "";
+
+    ganadores.forEach(g => {
+        html += `
+        🎉 MODULO: ${g.modulo}<br>
+        🎟️ CARTÓN: ${g.carton}<br>
+        👤 VENDEDOR: ${g.vendedor}<br>
+        🧩 FIGURA: ${g.figura}<br>
+        <hr>
+        `;
+    });
+
+    div.innerHTML = html;
+}
+async function actualizarGanadorTV(){
+
+    let mostrar = Number(
+        document.getElementById(
+            "selectorGanadorTV"
+        ).value
+    );
+
+    await fetch(
+        "/mostrarGanadorTV",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                mostrar
+            })
+        }
+    );
+
+}
+
+
+let ultimoEstado = null;
+
+setInterval(async () => {
+  let resp = await fetch("/comunicado");
+  let data = await resp.json();
+
+  if (JSON.stringify(data) === JSON.stringify(ultimoEstado)) return;
+
+  ultimoEstado = data;
+
+  if (data.activo) {
+    mostrarComunicado(data.texto);
+  } else {
+    ocultarComunicado();
+  }
+
+}, 1000);
+
+
+
+async function pagarPremios(){
+
+    try{
+
+        let resp = await fetch('/ganadores.json?t=' + Date.now());
+        let data = await resp.json();
+
+        let ganadores = data.ganadores || [];
+
+        if(ganadores.length === 0){
+            alert("No hay ganadores");
+            return;
+        }
+
+        let confirmar = confirm("¿Seguro que deseas pagar y mostrar ganador en TV?");
+        if(!confirmar) return;
+
+        let ganador = ganadores[0];
+        await fetch('/pagarPremio', {
+    method: 'POST'
+});
+
+        // ================================
+        // 🏆 MOSTRAR GANADOR INMEDIATO EN PANTALLA
+        // ================================
+        let div = document.getElementById("ganadorPrincipal");
+
+        div.innerHTML = `
+        <div style="
+            background:#111;
+            padding:25px;
+            border:4px solid gold;
+            border-radius:15px;
+            text-align:center;
+            color:white;
+        ">
+            <h1 style="color:gold; font-size:45px;">🏆 GANADOR</h1>
+            🎉 <b>MÓDULO:</b> ${ganador.modulo}<br>
+            🎟️ <b>CARTÓN:</b> ${ganador.carton}<br>
+            👤 <b>VENDEDOR:</b> ${ganador.vendedor}<br>
+            🧩 <b>FIGURA:</b> ${ganador.figura}<br>
+        </div>
+        `;
+
+        // 🔥 AVISAR A TV
+        /*await fetch('/comunicado', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                activo: true,
+                tipo: "ganador",
+                ganador: ganador
+            })
+        });*/
+
+        // 🔥 FIGURA QUE GANÓ
+        let figuraGanadora = ganador.figura;
+
+        // 🔥 LEER FIGURAS ACTUALES
+        let resFig = await fetch('/premios_figuras.json?t=' + Date.now());
+        let figurasData = await resFig.json();
+
+        // 🔥 BORRAR FIGURA PAGADA
+        if(figurasData.f1 === figuraGanadora){
+            figurasData.f1 = "";
+            figurasData.p1 = 0;
+        } else if(figurasData.f2 === figuraGanadora){
+            figurasData.f2 = "";
+            figurasData.p2 = 0;
+        } else if(figurasData.f3 === figuraGanadora){
+            figurasData.f3 = "";
+            figurasData.p3 = 0;
+        }
+
+        // 🔥 GUARDAR FIGURAS
+        await fetch('/guardarPremiosFiguras', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify(figurasData)
+        });
+        figuras = [
+    figurasData.f1 || null,
+    figurasData.f2 || null,
+    figurasData.f3 || null
+];
+
+        // 🔥 ENVIAR A TV
+        await fetch('/guardarGanadorTV', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mostrar: true,
+                ganador
+            })
+        });
+        
+
+        await fetch('/activar-premio', { method: 'POST' });
+
+        await fetch('/pagar-bingo', { method: 'POST' });
+
+        // 🔥 LIMPIAR SERVIDOR
+        await fetch('/borrar-ganadores', { method: 'POST' });
+
+        // 🔥 LIMPIAR UI
+        let lista = document.getElementById("ganadores");
+        if(lista) lista.innerHTML = "";
+
+        alert("✅ Premio pagado y ganador mostrado correctamente");
+
+    }catch(e){
+        console.log("❌ Error:", e);
+    }
+}
+
+/////pintando ganador------------
+
+
+function marcarFiguraLinea(matriz){
+
+    let posiciones = [];
+
+    // filas
+    for(let i=0;i<5;i++){
+        if(matriz[i].every(c => c.marcado)){
+            for(let j=0;j<5;j++){
+                posiciones.push([i,j]);
+            }
+            return posiciones;
+        }
+    }
+
+    // columnas
+    for(let j=0;j<5;j++){
+        let completa = true;
+
+        for(let i=0;i<5;i++){
+            if(!matriz[i][j].marcado){
+                completa = false;
+                break;
+            }
+        }
+
+        if(completa){
+            for(let i=0;i<5;i++){
+                posiciones.push([i,j]);
+            }
+            return posiciones;
+        }
+    }
+
+    return posiciones;
+}
+
+///-----------------------------------------------
+async function actualizarSelectorGanadores(){
+
+    let resp = await fetch('/ganadores.json?t=' + Date.now());
+    let data = await resp.json();
+
+    let ganadores = data.ganadores || [];
+
+    let select = document.getElementById("selectorGanadorTV");
+
+    select.innerHTML =
+    '<option value="-1">No mostrar ganador</option>';
+
+    ganadores.forEach((g,i)=>{
+
+        select.innerHTML += `
+        <option value="${i}">
+            ${g.vendedor} - Módulo ${g.modulo} - ${g.figura}
+        </option>
+        `;
+    });
+}
+
+
+
+function revisarModulo(modulo, numerosSalidos){
+
+  modulo.tablas.forEach(tabla => {
+
+    let esGanador = true;
+
+    tabla.filas.forEach(fila => {
+      fila.forEach(num => {
+
+        if(num === "FREE") return;
+
+        if(!numerosSalidos.includes(Number(num))){
+          esGanador = false;
+        }
+
+      });
+    });
+
+    if(esGanador){
+      console.log("GANADOR TABLA:", tabla.codigo, "DEL MODULO:", modulo.codigo);
+    }
+
+  });
+
+}
+
+//__________
+
+
+
+
+/*function usaFree(figuraNombre){
+
+    // ❌ ternas NO usan FREE
+    if(
+        figuraNombre === "terna_tres" ||
+        figuraNombre === "terna_cuadrito"
+    ){
+        return false;
+    }
+
+    // ✅ todo lo demás SÍ usa FREE
+    return true;
+}
+function estaMarcado(matriz, fila, col, permitirFree){
+
+    let celda = matriz[fila][col];
+
+    if(!celda) return false;
+
+    if(celda.numero === "FREE"){
+        return permitirFree; // 👈 aquí está la magia
+    }
+
+    return celda.marcado === true;
+}*/
+function marcarCarton(datos, salidos){
+
+    return datos.map(n => {
+
+    if(n === "FREE"){
+    return {
+        numero: "FREE",
+        marcado: true
+    };
+}
+
+        let num = Number(n);
+
+        return {
+            numero: num,
+            marcado: salidos.includes(num)
+        };
+
+    });
+
+}
+
+
+
+async function revisarGanadores(){
+   
+    try {
+        if (!juegoActivo) return;
+
+        let r1 = await fetch('/ventas.json');
+        let ventas = (await r1.json()).ventas || [];
+
+        let r2 = await fetch('/modulos.json');
+        let modulos = (await r2.json()).modulos || [];
+
+        // 🔥 leer ganadores actuales del servidor
+      let r3 = await fetch('/ganadores.json');;
+        let data = await r3.json();
+        let ganadoresServidor = data.ganadores || [];
+let permitirFree = true;
+        let lista = document.getElementById("listaVentasServidor");
+
+        for(let v of ventas){
+
+            let codigoModulo = v.codigo;
+            let modulo = modulos.find(m => m.codigo === codigoModulo);
+
+            if(!modulo) continue;
+
+            for(let tabla of modulo.tablas){
+
+                let datosPlano = Array.isArray(tabla.filas)
+                    ? tabla.filas.flat()
+                    : tabla.datos;
+
+                let marcado = marcarCarton(datosPlano, salidos);
+
+                let matriz = [];
+                for(let i=0;i<5;i++){
+                    matriz.push(marcado.slice(i*5,(i+1)*5));
+                }
+
+            let figura = null;
+
+             for(let f of figuras){
+                let figuraObj = figurasDB.find(x => x.nombre === f);
+
+if(!figuraObj) continue;
+                console.log("F COMPLETO:", f);
+console.log("TYPEOF:", typeof f);
+             console.log("OBJETO F =", f);
+             console.log("FIGURA=", f);
+
+    if(!f) continue;
+
+    let cumple = false;
+
+    // =====================================
+    // TERNA CUADRITO
+    // =====================================
+console.log("TIPO:", typeof figuraObj.nombre);
+console.log("VALOR:", JSON.stringify(f.nombre));
+console.log("COMPARA:", figuraObj.nombre === "terna_cuadrito");
+  /*if (figuraObj.cualquierParte && figuraObj.nombre === "terna_cuadrito") {
+    console.log("🔥 ENTRE A TERNA_CUADRITO");
+
+    for (let fila = 0; fila < 4; fila++) {
+        for (let col = 0; col < 4; col++) {
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila][col + 1]?.marcado &&
+                matriz[fila + 1][col]?.marcado &&
+                matriz[fila + 1][col + 1]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+        if (cumple) break;
+    }
+}*/
+if (figuraObj.cualquierParte && figuraObj.nombre === "terna_cuadrito") {
+    console.log("🔥 ENTRE A TERNA_CUADRITO");
+
+    for (let fila = 0; fila < 4; fila++) {
+        for (let col = 0; col < 4; col++) {
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila][col]?.numero !== "FREE" &&
+
+                matriz[fila][col + 1]?.marcado &&
+                matriz[fila][col + 1]?.numero !== "FREE" &&
+
+                matriz[fila + 1][col]?.marcado &&
+                matriz[fila + 1][col]?.numero !== "FREE" &&
+
+                matriz[fila + 1][col + 1]?.marcado &&
+                matriz[fila + 1][col + 1]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+        if (cumple) break;
+    }
+}
+
+    // =====================================
+    // TERNA TRES
+    // =====================================
+
+  
+
+ /* else if (figuraObj.nombre === "terna_tres") {
+
+    // 🔹 3 marcados en cualquier fila
+    for (let fila = 0; fila < 5 && !cumple; fila++) {
+
+        let cantidad = 0;
+
+        for (let col = 0; col < 5; col++) {
+            if (matriz[fila][col]?.marcado) cantidad++;
+        }
+
+        if (cantidad >= 3) cumple = true;
+    }
+
+    // 🔹 3 marcados en cualquier columna
+    for (let col = 0; col < 5 && !cumple; col++) {
+
+        let cantidad = 0;
+
+        for (let fila = 0; fila < 5; fila++) {
+            if (matriz[fila][col]?.marcado) cantidad++;
+        }
+
+        if (cantidad >= 3) cumple = true;
+    }
+
+    // 🔹 3 seguidos horizontal
+    for (let fila = 0; fila < 5 && !cumple; fila++) {
+        for (let col = 0; col < 3; col++) {
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila][col + 1]?.marcado &&
+                matriz[fila][col + 2]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+    }
+
+    // 🔹 3 seguidos vertical
+    for (let col = 0; col < 5 && !cumple; col++) {
+        for (let fila = 0; fila < 3; fila++) {
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila + 1][col]?.marcado &&
+                matriz[fila + 2][col]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+    }
+
+    // 🔹 Forma L
+    for (let fila = 0; fila < 4 && !cumple; fila++) {
+        for (let col = 0; col < 4; col++) {
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila + 1][col]?.marcado &&
+                matriz[fila + 1][col + 1]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila][col + 1]?.marcado &&
+                matriz[fila + 1][col]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+
+            if (
+                matriz[fila][col]?.marcado &&
+                matriz[fila][col + 1]?.marcado &&
+                matriz[fila + 1][col + 1]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+
+            if (
+                matriz[fila][col + 1]?.marcado &&
+                matriz[fila + 1][col]?.marcado &&
+                matriz[fila + 1][col + 1]?.marcado
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+    }
+}*/
+else if (figuraObj.nombre === "terna_tres") {
+
+    // 🔹 3 marcados en cualquier fila
+    for (let fila = 0; fila < 5 && !cumple; fila++) {
+
+        let cantidad = 0;
+
+        for (let col = 0; col < 5; col++) {
+            if (matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE") {
+                cantidad++;
+            }
+        }
+
+        if (cantidad >= 3) cumple = true;
+    }
+
+    // 🔹 3 marcados en cualquier columna
+    for (let col = 0; col < 5 && !cumple; col++) {
+
+        let cantidad = 0;
+
+        for (let fila = 0; fila < 5; fila++) {
+            if (matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE") {
+                cantidad++;
+            }
+        }
+
+        if (cantidad >= 3) cumple = true;
+    }
+
+    // 🔹 3 seguidos horizontal
+    for (let fila = 0; fila < 5 && !cumple; fila++) {
+        for (let col = 0; col < 3; col++) {
+
+            if (
+                matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE" &&
+                matriz[fila][col + 1]?.marcado && matriz[fila][col + 1]?.numero !== "FREE" &&
+                matriz[fila][col + 2]?.marcado && matriz[fila][col + 2]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+    }
+
+    // 🔹 3 seguidos vertical
+    for (let col = 0; col < 5 && !cumple; col++) {
+        for (let fila = 0; fila < 3; fila++) {
+
+            if (
+                matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE" &&
+                matriz[fila + 1][col]?.marcado && matriz[fila + 1][col]?.numero !== "FREE" &&
+                matriz[fila + 2][col]?.marcado && matriz[fila + 2][col]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+    }
+
+    // 🔹 Forma L
+    for (let fila = 0; fila < 4 && !cumple; fila++) {
+        for (let col = 0; col < 4; col++) {
+
+            if (
+                matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE" &&
+                matriz[fila + 1][col]?.marcado && matriz[fila + 1][col]?.numero !== "FREE" &&
+                matriz[fila + 1][col + 1]?.marcado && matriz[fila + 1][col + 1]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+
+            if (
+                matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE" &&
+                matriz[fila][col + 1]?.marcado && matriz[fila][col + 1]?.numero !== "FREE" &&
+                matriz[fila + 1][col]?.marcado && matriz[fila + 1][col]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+
+            if (
+                matriz[fila][col]?.marcado && matriz[fila][col]?.numero !== "FREE" &&
+                matriz[fila][col + 1]?.marcado && matriz[fila][col + 1]?.numero !== "FREE" &&
+                matriz[fila + 1][col + 1]?.marcado && matriz[fila + 1][col + 1]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+
+            if (
+                matriz[fila][col + 1]?.marcado && matriz[fila][col + 1]?.numero !== "FREE" &&
+                matriz[fila + 1][col]?.marcado && matriz[fila + 1][col]?.numero !== "FREE" &&
+                matriz[fila + 1][col + 1]?.marcado && matriz[fila + 1][col + 1]?.numero !== "FREE"
+            ) {
+                cumple = true;
+                break;
+            }
+        }
+    }
+}
+
+    // =====================================
+    // BINGO HORIZONTAL
+    // =====================================
+
+    
+else if(figuraObj.nombre === "bingo_horizontal"){
+
+    // horizontales
+    for(let fila = 0; fila < 5 && !cumple; fila++){
+
+        let linea = true;
+
+        for(let col = 0; col < 5; col++){
+            if(!matriz[fila][col]?.marcado){
+                linea = false;
+                break;
+            }
+        }
+
+        if(linea){
+            cumple = true;
+        }
+    }
+
+
+
+
+}
+else if(figuraObj.nombre === "bingo_vertical"){
+
+    for(let col = 0; col < 5 && !cumple; col++){
+
+        let linea = true;
+
+        for(let fila = 0; fila < 5; fila++){
+            if(!matriz[fila][col]?.marcado){
+                linea = false;
+                break;
+            }
+        }
+
+        if(linea){
+            cumple = true;
+        }
+    }
+}
+
+    // =====================================
+    // FIGURAS NORMALES
+    // =====================================
+
+    else{
+
+        let posiciones = getFig(f);
+
+        cumple = posiciones.every(pos => {
+
+            let fila = Math.floor(pos / 5);
+            let col = pos % 5;
+
+            return matriz[fila][col]?.marcado === true;
+
+        });
+    }
+
+    if(cumple){
+    figura = figuraObj;
+    break;
+}
+}
+
+                if(figura){
+
+                   let yaExiste = ganadoresServidor.some(g =>
+                       g.carton === tabla.codigo &&
+                       g.modulo === modulo.codigo
+                    );
+                    if(!yaExiste){
+
+                        let ganador = {
+                         modulo: modulo.codigo,
+                          carton: tabla.codigo,
+                         vendedor: v.vendedor,
+                          figura: figura.nombre,
+                            datosPlano: datosPlano
+                     };
+                          // 🔥 AGREGAR ESTO
+                         ganador.html = generarHTMLCarton( matriz, figura.nombre);
+                        if (!yaExiste) {
+                            console.log("🎯 GANADOR DETECTADO:", tabla.codigo);
+                            let posicionesGanadoras = [];
+
+for(let fila = 0; fila < 5; fila++){
+    for(let col = 0; col < 5; col++){
+
+        if(matriz[fila][col]){
+            posicionesGanadoras.push((fila * 5) + col);
+        }
+    }
+}
+ganador.lineaGanadora = posicionesGanadoras;
+                        }
+
+                        let texto = `🎉 Módulo ${ganador.modulo} - Cartón ${ganador.carton} - ${ganador.figura} - ${ganador.vendedor}`;
+                         
+                        // ✅ ALERTA (NO SE BORRA)
+                        alert(texto);
+                        document.getElementById("ganadorPrincipal").innerText = texto;
+
+                        // ✅ MOSTRAR EN PANTALLA
+                        let li = document.createElement("li");
+                        li.innerText = texto;
+                        lista.appendChild(li);
+
+                        // 🔥 agregar al array local
+                        ganadoresServidor.push(ganador);
+                        let select = document.getElementById("selectorGanadorTV");
+
+                         let option = document.createElement("option");
+
+                          option.value = ganadoresServidor.length - 1;
+
+                           option.textContent =`${ganador.vendedor} - Módulo ${ganador.modulo} - ${ganador.figura}`;
+
+                            select.appendChild(option);
+
+                        // 🔥 GUARDAR EN SERVIDOR
+                        try {
+                            
+                          let resp = await fetch('/guardarGanadores', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    ganadores: ganadoresServidor
+                                })
+                            });
+
+                            // 🔥 SIN ERROR DE JSON
+                            let textoResp = await resp.text();
+                            console.log("🔥 RESPUESTA SERVER:", textoResp);
+
+                        } catch(err){
+                            console.log("❌ Error enviando al server:", err);
+                        }
+                    }
+                }
+            }
+        }
+
+    } catch(e){
+        console.log("❌ Error revisarGanadores:", e);
+    }
+}
+
+
+
+function obtenerCartonPlanoUniversal(tabla){
+
+    let datos = [];
+
+    // 🔹 CASO 1: formato nuevo (filas)
+    if(tabla.filas){
+        datos = tabla.filas.flat();
+    }
+
+    // 🔹 CASO 2: formato viejo (datos)
+    else if(tabla.datos){
+        datos = tabla.datos;
+    }
+
+    // 🔹 NORMALIZAR (AQUÍ ESTÁ LA MAGIA)
+    return datos.map(v => {
+
+        if(v === "FREE") return "FREE";
+
+        // convierte string o number → number limpio
+        let num = Number(v);
+
+        return isNaN(num) ? null : num;
+
+    });
+
+}
+
+//terminar de buscar ganadores _______///
+
+
+
+function obtenerDatosPlano(tabla){
+
+    // 🔹 Si ya viene plano
+    if(tabla.datos){
+        return tabla.datos;
+    }
+
+    // 🔹 Si viene en filas (convertir a plano)
+    if(tabla.filas){
+        return tabla.filas.flat();
+    }
+
+    return [];
+}
+// JUEGO
+let juegoActivo = false;
+
+function terminar() {
+    alert("SI estoy entrando a la función");
+
+    juegoActivo = false;
+
+    fetch('/guardarEstado', {
+       method: 'POST',
+       headers: {'Content-Type':'application/json'},
+       body: JSON.stringify({ salidos: [] })
+    });
+
+    fetch("/terminar-juego")
+        .then(res => res.text())
+        .then(data => {
+            console.log("Servidor dijo:", data);
+
+            // 🔥 LIMPIAR FRONTEND TAMBIÉN
+            ganadoresGlobal = [];
+
+            let lista = document.getElementById("ganadores");
+            if(lista) lista.innerHTML = "";
+
+            document.getElementById("ganadorPrincipal").innerText = "";
+
+            location.reload();
+        })
+        .catch(err => {
+            console.log("Error:", err);
+        });
+}
+</script>
+<script>
+
+    ///animacion///////
+function presentarJuego(){
+
+    let audio = new Audio("/audios/presentacion.mp3");
+
+    audio.onerror = () => {
+        console.log("❌ No existe audio de presentación");
+    };
+
+    audio.play();
+}
+
+
+    ///////////////////////////////////////
+    /////
+    //////cantar bingo/-------/////////
+let intervaloContador = null;
+let segundosContador = 10;
+
+function iniciarContadorBalota(){
+
+    // Detener contador anterior
+    if(intervaloContador){
+        clearInterval(intervaloContador);
+    }
+
+    segundosContador = 10;
+
+    const contador = document.getElementById("contadorBalota");
+
+    contador.innerText = segundosContador;
+    contador.style.display = "flex";
+
+    intervaloContador = setInterval(() => {
+
+        segundosContador--;
+
+        contador.innerText = segundosContador;
+
+        if(segundosContador <= 0){
+
+            clearInterval(intervaloContador);
+            intervaloContador = null;
+
+            contador.innerText = "0";
+
+            setTimeout(() => {
+                contador.style.display = "none";
+            }, 500);
+        }
+
+    }, 1000);
+}
+function cantar(){
+
+    if(!juego){
+        alert("⚠️ Debes iniciar el juego");
+        return;
+    }
+
+    let input = document.getElementById("num");
+    let valor = input.value.trim();
+    let n = Number(valor);
+    console.log("📤 Enviando número:", n);
+
+    if(isNaN(n) || n < 1 || n > 75){
+        alert("Número inválido (1-75)");
+        return;
+    }
+
+    if(salidos.includes(n)){
+        alert("⚠️ Número ya salió");
+        return;
+    }
+
+    // ✅ guardar número
+    salidos.push(n);
+
+    fetch('/guardarEstado', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ salidos })
+    });
+
+    // ✅ marcar en tablero
+    let casilla = document.getElementById("n"+n);
+    if(casilla) casilla.classList.add("activo");
+
+    // ✅ marcar en cartón
+    document.querySelectorAll("#carton .numero").forEach(c=>{
+        if(parseInt(c.innerText) == n){
+            c.classList.add("activo");
+        }
+    });
+
+    // 🔊 sonido + voz PROFESIONAL (SIN RUIDO)
+   // 🔊 AUDIO PROFESIONAL (SIN RUIDO)
+if(window.audioActual){
+    window.audioActual.pause();
+    window.audioActual.currentTime = 0;
+}
+
+window.audioActual = new Audio("/audios/bb_" + n + ".mp3");
+
+window.audioActual.onerror = () => {
+    console.log("❌ No existe audio:", n);
+};
+
+window.audioActual.play().catch(err => {
+    console.log("❌ Error reproduciendo audio:", err);
+});
+
+
+input.value = "";
+
+revisarGanadores();
+
+mostrarNumeroGrande(n);
+
+// ⏱️ INICIAR CONTADOR DE 10 SEGUNDOS
+iniciarContadorBalota();
+
+}
+
+///cantando el audio--------//
+
+function aMatriz(marcado){
+    let m = [];
+    for(let i=0;i<5;i++){
+        m.push(marcado.slice(i*5, i*5+5));
+    }
+    return m;
+}
+function verificar(){
+ if(!figuras[indice]) return;
+
+ let c=document.querySelectorAll("#carton .numero");
+ let ok=true;
+
+ getFig(figuras[indice]).forEach(i=>{
+  let v=c[i].innerText;
+  if(v!="FREE" && !c[i].classList.contains("activo")) ok=false;
+ });
+
+ if(ok){
+  document.getElementById("ganadores").innerHTML+="<li>🎉 "+figuras[indice]+"</li>";
+  document.getElementById("g"+(indice+1)).innerHTML="";
+  indice++;
+ }
+}
+
+
+
+function obtenerLetra(n){
+    if(n>=1 && n<=15) return "B";
+    if(n>=16 && n<=30) return "I";
+    if(n>=31 && n<=45) return "N";
+    if(n>=46 && n<=60) return "G";
+    if(n>=61 && n<=75) return "O";
+}
+
+
+
+
+
+// 🔥 LEER VENTAS DESDE EL SERVIDOR
+
+async function leerVentas(){
+    try{
+       let res = await fetch("/ventas.json");
+        let data = await res.json();
+
+        let lista = document.getElementById("ganadores"); // donde lo vas a mostrar
+        lista.innerHTML = "";
+
+        data.ventas.forEach(v=>{
+            let li = document.createElement("li");
+            li.innerText = "🧾 " + v.codigo + " - " + v.vendedor;
+            lista.appendChild(li);
+        });
+
+    }catch(e){
+        console.log("Error leyendo ventas", e);
+    }
+}
+
+// 🔁 ACTUALIZAR AUTOMÁTICO
+setInterval(leerVentas, 1000);
+// ESCÁNER
+
+
+
+
+
+
+window.addEventListener("load", () => {
+  iniciarCamara();
+});
+//if ("serviceWorker" in navigator) {
+ //navigator.serviceWorker.register("service-worker.js");
+//}
+</script>
+
+</body>
+</html>

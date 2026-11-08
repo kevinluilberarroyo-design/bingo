@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BINGO PRO FÍSICO</title>
+
+<style>
+
+
+body 
+
+{ font-family: Arial; background: linear-gradient(45deg,#ffcc00,#ff6699,#66ccff); margin:0;}
+.container { display:flex; justify-content:space-between; padding:20px;}
+.tablero-area { width:60%; }
+
+.fila{
+ display:flex;
+}
+
+.numero{
+ width:35px;
+ height:35px;
+ border:1px solid black;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-weight:bold;
+ background:white;
+}
+
+.free{
+ background:gold;
+}
+body{
+ font-family:Arial;
+ background:linear-gradient(45deg,#ffcc00,#ff6699,#66ccff);
+ margin:0;
+ padding:20px;
+}
+
+</style>
+
+
+</head>
+
+<body>
+
+<div style="padding:10px; background:#222;">
+<button style="padding:10px 20px;" onclick="history.back()">⬅ Volver</button>
+
+<button style="padding:10px 20px;" onclick="location.href='login.html'">🏠 Inicio</button>
+</div>
+<button onclick="imprimirCodigosModulos()">
+🖨️ Imprimir códigos de módulos
+</button>
+
+<button onclick="activarRegistro()">📝 Registrar módulo manual</button>
+<h2>📦 Módulos registrados</h2>
+
+<button onclick="mostrarModulos()">🔄 Cargar módulos</button>
+<h3>
+🔍 Buscar módulo
+<span id="totalModulos" style="color:blue;">
+(0 módulos)
+</span>
+</h3>
+<input id="buscarModulo" placeholder="Ej: 5678">
+<button onclick="buscarModulo()">Buscar</button>
+
+
+<h4>Módulos guardados</h4>
+<div id="listaModulos"></div>
+
+<div id="carton"></div>
+
+<!-- REGISTRO -->
+<div id="registro" style="display:none; margin-top:10px;">
+<h4>Registrar tabla</h4>
+<div id="cartonDuplicado" style="margin-top:10px;"></div>
+
+Código de tabla:
+<input id="codigoTabla" maxlength="4" placeholder="1234">
+
+<div id="gridRegistro"></div>
+
+<button onclick="guardarTablaManual()">Guardar tabla</button>
+
+<p>Tablas en módulo: <span id="contRegistro">0</span>/3</p>
+
+Código del módulo:
+<input id="codigoModulo" maxlength="4" placeholder="5678">
+</div>
+
+<hr>
+<script>
+
+
+if(localStorage.getItem("logueado") !== "true"){
+  location.href = "login.html";
+}
+</script>
+<script src="config.js"></script>
+<script>
+
+console.log("🔥 CONFIG CARGADA:", API);
+
+// REGISTRO MANUAL
+
+let moduloManual=[];
+
+function activarRegistro(){
+ document.getElementById("registro").style.display="block";
+
+ let div=document.getElementById("gridRegistro");
+ div.innerHTML="";
+
+ for(let r=0;r<5;r++){
+  let fila=document.createElement("div"); fila.className="fila";
+  for(let c=0;c<5;c++){
+   let inp=document.createElement("input");
+   inp.style.width="35px";
+   inp.style.textAlign="center";
+   if(r==2 && c==2){ inp.value="FREE"; inp.disabled=true; }
+   fila.appendChild(inp);
+  }
+  div.appendChild(fila);
+ }
+}
+
+async function validarCartonExistente(codigoTabla){
+
+    //let resp = await fetch("/modulos.json");
+    let resp = await fetch(API + "/modulos.json");
+
+if(!resp.ok){
+    console.log("❌ Error cargando modulos.json");
+    return;
+}
+
+let data = await resp.json();
+    let modulos = data.modulos || [];
+
+    for(let m of modulos){
+
+        if(!m.tablas) continue;
+
+        for(let t of m.tablas){
+
+            if(t.codigo === codigoTabla){
+
+                // 🔥 devolvemos info completa
+                return {
+                    existe: true,
+                    modulo: m.codigo,
+                    tabla: t
+                };
+            }
+
+        }
+    }
+
+    return { existe: false };
+}
+
+async function guardarTablaManual(){
+
+ let codigoTabla = document.getElementById("codigoTabla").value;
+
+ if(!/^\d{4}$/.test(codigoTabla)){
+  alert("Código tabla inválido (4 dígitos)");
+  return;
+ }
+
+ // 🔥 VALIDAR EN SERVIDOR
+ let resultado = await validarCartonExistente(codigoTabla);
+
+ if(resultado.existe){
+
+    alert("❌ Ya existe en módulo " + resultado.modulo);
+
+    // mostrar visual
+    let datos = normalizarTabla(resultado.tabla);
+
+          dibujarCartonDuplicado(datos);
+           cargarCartonEnFormulario(datos);
+
+    return;
+ }
+
+ // 🔒 VALIDAR EN EL MISMO MÓDULO
+ let repetidoLocal = moduloManual.find(t => t.codigo === codigoTabla);
+
+ if(repetidoLocal){
+  alert("⚠️ Este cartón ya lo agregaste en este módulo");
+  return;
+ }
+
+ let inputs = document.querySelectorAll("#gridRegistro input");
+
+ let tabla = [];
+ let fila = [];
+
+ inputs.forEach((inp, i) => {
+
+    fila.push(inp.value);
+
+    if((i+1) % 5 === 0){
+        tabla.push(fila);
+        fila = [];
+    }
+
+ });
+
+ moduloManual.push({
+    codigo: codigoTabla,
+    filas: tabla
+ });
+
+ document.getElementById("contRegistro").innerText = moduloManual.length;
+
+ document.getElementById("codigoTabla").value = "";
+
+ inputs.forEach(inp=>{
+    if(inp.value != "FREE") inp.value = "";
+ });
+
+ if(moduloManual.length == 3){
+  guardarModuloManual();
+ }
+}
+
+function guardarModuloManual(){
+
+ let codigoModulo=document.getElementById("codigoModulo").value;
+
+ if(!/^\d{4}$/.test(codigoModulo)){
+  alert("Código módulo inválido (4 dígitos)");
+  return;
+ }
+
+ guardarModuloServidor({
+  codigo: codigoModulo,
+  tablas: moduloManual
+});
+ moduloManual=[];
+ document.getElementById("contRegistro").innerText=0;
+ document.getElementById("codigoModulo").value="";
+
+ alert("Módulo guardado");
+
+ mostrarModulos();
+}
+
+async function guardarModuloServidor(nuevoModulo){
+
+ try {
+    // 1️⃣ Traer los módulos actuales del servidor
+    let resp = await fetch(API + "/modulos.json")
+    let data = await resp.json();
+
+    // 2️⃣ Agregar el nuevo módulo
+    data.modulos.push(nuevoModulo);
+
+    // 3️⃣ Guardar en servidor
+    await fetch(API + "/guardarModulos", {
+        method: "POST",
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    alert("✅ Módulo guardado en servidor");
+
+ } catch(e){
+    alert("❌ Error guardando módulo: " + e.message);
+ }
+
+}
+
+//mostrar modulo
+async function mostrarModulos(){
+
+ let lista = document.getElementById("listaModulos");
+ lista.innerHTML = "";
+
+ try {
+    let resp = await fetch(API + "/modulos.json");
+    let data = await resp.json();
+    let modulos = data.modulos;
+    document.getElementById("totalModulos").innerText =
+"(" + modulos.length + " módulos)";
+
+      let filtro = document.getElementById("buscarModulo")?.value.trim();
+
+       modulos.forEach((m,i)=>{
+
+         // 🔥 FILTRO
+         if(filtro && m.codigo !== filtro) return;
+
+      let contenedor = document.createElement("div");
+      contenedor.style.border = "2px solid black";
+      contenedor.style.margin = "10px";
+      contenedor.style.padding = "10px";
+
+      let titulo = document.createElement("h3");
+      titulo.innerText = "Módulo: " + m.codigo;
+      contenedor.appendChild(titulo);
+
+      // 🔥 mostrar las 3 tablas lado a lado
+      let filaTablas = document.createElement("div");
+      filaTablas.style.display = "flex";
+      filaTablas.style.gap = "10px";
+
+      (m.tablas || []).forEach(t => {
+
+        let datos = normalizarTabla(t);
+
+        let grid = document.createElement("div");
+
+        for(let r=0;r<5;r++){
+          let fila = document.createElement("div");
+          fila.className = "fila";
+
+          for(let c=0;c<5;c++){
+            let celda = document.createElement("div");
+            celda.className = "numero";
+
+            let val = datos[r*5+c];
+
+            if(val === "FREE") celda.classList.add("free");
+
+            celda.innerText = val;
+
+            fila.appendChild(celda);
+          }
+
+          grid.appendChild(fila);
+        }
+
+        filaTablas.appendChild(grid);
+      });
+
+      contenedor.appendChild(filaTablas);
+
+      // 🔥 BOTÓN CONVERTIR
+      let btnConvertir = document.createElement("button");
+      btnConvertir.innerText = "Convertir a formato nuevo";
+      btnConvertir.onclick = () => convertirModulo(m.codigo);
+      contenedor.appendChild(btnConvertir);
+
+      // 🔥 BOTÓN BORRAR
+      let btnBorrar = document.createElement("button");
+      btnBorrar.innerText = "Eliminar módulo";
+      btnBorrar.onclick = () => eliminarModulo(m.codigo);
+      contenedor.appendChild(btnBorrar);
+
+      lista.appendChild(contenedor);
+
+    });
+
+ } catch(e){
+    console.error("Error cargando módulos:", e);
+ }
+
+}
+
+async function buscarModulo(){
+
+ let codigo = document.getElementById("buscarModulo").value.trim();
+
+ if(!codigo){
+    alert("Ingresa un código");
+    return;
+ }
+
+ let lista = document.getElementById("listaModulos");
+ lista.innerHTML = "";
+
+ try {
+
+    let resp = await fetch(API + "/modulos.json");
+    let data = await resp.json();
+
+    let modulos = data.modulos;
+
+    let m = modulos.find(x => x.codigo === codigo);
+
+    if(!m){
+        lista.innerHTML = "<h3>❌ No existe ese módulo</h3>";
+        return;
+    }
+
+    // 🔥 reutilizamos la misma lógica de pintar
+
+    pintarModulo(m, lista);
+
+ } catch(e){
+    console.log("Error:", e);
+ }
+ 
+
+}
+async function convertirModulo(codigoModulo){
+
+ let resp = await fetch(API + "/modulos.json");
+ let data = await resp.json();
+
+let modulos = data.modulos || [];
+
+ let mod = modulos.find(m => m.codigo === codigoModulo);
+
+ if(!mod) return;
+
+ mod.tablas.forEach(t => {
+
+    if(!t.filas && t.datos){
+
+        let filas = [];
+
+        for(let i=0;i<5;i++){
+            filas.push(t.datos.slice(i*5,(i+1)*5));
+        }
+
+        t.filas = filas;
+        delete t.datos;
+    }
+
+ });
+
+ await fetch(API + "/guardarModulos", {
+    method: "POST",
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({modulos})
+ });
+
+ alert("✅ Módulo convertido");
+
+ mostrarModulos();
+}
+
+async function eliminarModulo(codigoModulo){
+
+ if(!confirm("¿Seguro que quieres eliminar este módulo?")) return;
+
+ let resp = await fetch(API + "/modulos.json");
+ let data = await resp.json();
+
+ let modulos = data.modulos.filter(m => m.codigo !== codigoModulo);
+
+ await fetch(API + "/guardarModulos", {
+    method: "POST",
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({modulos})
+ });
+
+ alert("🗑️ Módulo eliminado");
+
+ mostrarModulos();
+}
+
+function pintarModulo(m, lista){
+
+    let contenedor = document.createElement("div");
+    contenedor.style.border = "2px solid black";
+    contenedor.style.margin = "10px";
+    contenedor.style.padding = "10px";
+
+    let titulo = document.createElement("h3");
+    titulo.innerText = "Módulo: " + m.codigo;
+    contenedor.appendChild(titulo);
+
+    let filaTablas = document.createElement("div");
+    filaTablas.style.display = "flex";
+    filaTablas.style.gap = "10px";
+
+    m.tablas.forEach(t => {
+
+        let datos = normalizarTabla(t);
+
+        let grid = document.createElement("div");
+
+        for(let r=0;r<5;r++){
+
+            let fila = document.createElement("div");
+            fila.className = "fila";
+
+            for(let c=0;c<5;c++){
+
+                let celda = document.createElement("div");
+                celda.className = "numero";
+
+                let val = datos[r*5+c];
+
+                if(val === "FREE"){
+                    celda.classList.add("free");
+                }
+
+                celda.innerText = val;
+
+                fila.appendChild(celda);
+            }
+
+            grid.appendChild(fila);
+        }
+
+        filaTablas.appendChild(grid);
+    });
+
+    contenedor.appendChild(filaTablas);
+    lista.appendChild(contenedor);
+}
+
+
+
+function dibujarCartonDuplicado(datos){
+
+    let cont = document.getElementById("cartonDuplicado");
+    cont.innerHTML = "<h4>⚠️ Cartón ya registrado:</h4>";
+
+    let grid = document.createElement("div");
+
+    // 🔥 convertir a plano si es matriz
+let plano = normalizarTabla({ datos: datos });
+    for(let i = 0; i < 5; i++){
+
+        let fila = document.createElement("div");
+        fila.className = "fila";
+
+        for(let j = 0; j < 5; j++){
+
+            let index = i * 5 + j;
+
+            let celda = document.createElement("div");
+            celda.className = "numero";
+
+            if(plano[index] === "FREE"){
+                celda.classList.add("free");
+            }
+
+            celda.innerText = plano[index];
+
+            fila.appendChild(celda);
+        }
+
+        grid.appendChild(fila);
+    }
+
+    cont.appendChild(grid);
+}
+function cargarCartonEnFormulario(datos){
+
+    datos = normalizarTabla({ datos: datos });
+
+    let inputs = document.querySelectorAll("#gridRegistro input");
+
+    inputs.forEach((inp, i) => {
+        if(datos[i] === "FREE"){
+            inp.value = "FREE";
+        } else {
+            inp.value = datos[i];
+        }
+    });
+}
+
+function normalizarTabla(t){
+   if(t.filas) return t.filas.flat();
+   if(t.datos) return t.datos;
+   return [];
+}
+
+function obtenerCartonPlanoUniversal(t){
+   if(t.filas) return t.filas.flat();
+   if(t.datos) return t.datos;
+   return [];
+}
+async function imprimirCodigosModulos(){
+
+    try{
+
+        let resp = await fetch(API + "/modulos.json");
+        let data = await resp.json();
+
+        let modulos = data.modulos || [];
+
+        let ventana = window.open("", "_blank");
+
+        let html = `
+        <html>
+        <head>
+            <title>Códigos de Módulos</title>
+            <style>
+                body{
+                    font-family: Arial;
+                    padding:20px;
+                }
+
+                h2{
+                    text-align:center;
+                }
+
+                .codigo{
+                    display:inline-block;
+                    width:120px;
+                    height:40px;
+                    line-height:40px;
+                    text-align:center;
+                    border:1px solid black;
+                    margin:5px;
+                    font-size:24px;
+                    font-weight:bold;
+                }
+            </style>
+        </head>
+        <body>
+
+        <h2>Listado de códigos de módulos</h2>
+        `;
+
+        modulos.forEach(m=>{
+            html += `<div class="codigo">${m.codigo}</div>`;
+        });
+
+        html += `
+        <script>
+            window.onload=function(){
+                window.print();
+            }
+        <\/script>
+
+        </body>
+        </html>`;
+
+        ventana.document.write(html);
+        ventana.document.close();
+
+    }catch(e){
+        alert("Error al generar impresión");
+    }
+
+}
+
+</script>
+
+</body>
+</html>

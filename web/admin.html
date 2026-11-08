@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Panel Administrativo</title>
+
+<style>
+body{
+    font-family: Arial;
+    background:#111;
+    color:white;
+    padding:20px;
+    margin:0;
+}
+
+h1{
+    text-align:center;
+    color:gold;
+    margin-bottom:20px;
+}
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.menu{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.box{
+    background:#222;
+    padding:20px;
+    margin:10px 0;
+    border-radius:10px;
+    font-size:24px;
+}
+
+button{
+    padding:10px 20px;
+    font-size:16px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn{
+    background:gold;
+    color:black;
+}
+
+.btn-danger{
+    background:#c62828;
+    color:white;
+}
+
+#historial{
+    background:#222;
+    padding:15px;
+    margin-top:20px;
+    border-radius:10px;
+}
+
+.item{
+    padding:8px;
+    border-bottom:1px solid #444;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎯 PANEL ADMINISTRATIVO</h1>
+
+<div class="topbar">
+
+<div style="padding:10px; background:#222;">
+<button onclick="history.back()">⬅ Volver</button>
+<button onclick="location.href='login.html'">🏠 Inicio</button>
+</div>
+
+<div class="menu">
+<button class="btn" onclick="location.href='admin.html'">📊 Admin</button>
+<button class="btn" onclick="location.href='registro_modulos.html'">🧾 Registro</button>
+
+<button class="btn"
+onclick="location.href='voleteria.html'">
+🎟️ Voletería
+</button>
+
+<button onclick="location.href='presentacion.html'">📺 Presentación</button>
+<button class="btn" onclick="cargar()">🔄 Actualizar</button>
+
+</div>
+
+<div>
+<span id="usuarioInfo"></span>
+<button class="btn-danger" onclick="salir()">🚪 Salir</button>
+</div>
+
+</div>
+
+<div class="box">💰 Vendido Hoy: $<span id="vendido">0</span></div>
+<div class="box">🏆 Premios Hoy: $<span id="premios">0</span></div>
+<div class="box">
+📈 Utilidad Hoy:
+$<span id="utilidad">0</span>
+</div>
+
+<div class="box">
+💵 Caja Disponible:
+$<span id="caja">0</span>
+</div>
+<div class="box">🎮 Juegos Hoy: <span id="juegos">0</span></div>
+<div class="box">
+
+<h3>💵 Movimiento de Caja</h3>
+
+<input type="number"
+       id="valorMovimiento"
+       placeholder="Valor">
+
+<select id="tipoMovimiento">
+    <option value="guardar">
+        Guardar dinero
+    </option>
+
+    <option value="pagar">
+        Pagar deuda
+    </option>
+</select>
+
+<button class="btn"
+        onclick="guardarMovimiento()">
+    Guardar
+</button>
+
+</div>
+
+<div id="historial">
+  <div id="resumenCaja"></div>
+<h2>Últimos Juegos</h2>
+<div id="lista"></div>
+</div>
+
+<script>
+
+// 🔥 IMPORTANTE: MISMO API QUE LOGIN
+const API = window.location.origin;
+
+// 🔐 VALIDACIÓN LIMPIA (SOLO UNA VEZ)
+const usuario = localStorage.getItem("usuario");
+const rol = (localStorage.getItem("rol") || "").toLowerCase().trim();
+
+console.log("DEBUG ADMIN:", usuario, rol);
+
+if (!usuario) {
+  location.href = "login.html";
+}
+
+if (rol !== "admin") {
+  location.href = "juego.html";
+}
+
+// 👤 MOSTRAR USUARIO
+document.getElementById("usuarioInfo").innerText =
+"👤 " + usuario + " | Admin";
+
+// 🚪 SALIR
+function salir(){
+  localStorage.clear();
+  location.href = "login.html";
+}
+let premiosFiguras = {
+  p1: 0,
+  p2: 0,
+  p3: 0
+};
+
+async function cargarPremiosFiguras(){
+
+  try{
+
+    let res = await fetch('/premios_figuras.json');
+    let data = await res.json();
+
+    premiosFiguras.p1 = Number(data.p1 || 0);
+    premiosFiguras.p2 = Number(data.p2 || 0);
+    premiosFiguras.p3 = Number(data.p3 || 0);
+
+  }catch(e){
+    console.log("Error premios figuras:", e);
+  }
+}
+// 📊 CARGAR DATOS
+async function cargar(){
+  try{
+
+    let res = await fetch(API + "/cerrar-caja");
+    let data = await res.json();
+
+    document.getElementById("vendido").innerText =
+    Number(data.vendido).toLocaleString();
+
+    document.getElementById("premios").innerText =
+    Number(data.premios).toLocaleString();
+
+document.getElementById("utilidad").innerText =
+Number(data.utilidad).toLocaleString();
+
+document.getElementById("caja").innerText =
+Number(data.caja).toLocaleString();
+
+    document.getElementById("juegos").innerText =
+    data.juegos;
+
+    // HISTORIAL
+    let r2 = await fetch(API + "/historial_juegos.json");
+    let h = await r2.json();
+
+    let lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+h.juegos.slice().reverse().forEach(j=>{
+
+  lista.innerHTML += `
+  <div class="item">
+      🎮 Partida #${j.id}<br>
+      🕒 Inicio: ${j.inicio || "--"}<br>
+      🛑 Fin: ${j.fin || "--"}<br>
+      💰 Vendido: $${Number(j.vendido || 0).toLocaleString()}<br>
+      🏆 Premio: $${Number(j.premios || 0).toLocaleString()}<br>
+      📈 Utilidad: $${Number(
+          j.utilidad || j.ganancia || 0
+      ).toLocaleString()}
+  </div>
+  `;
+});
+
+  }catch(e){
+    console.log("ERROR ADMIN:", e);
+  }
+  let r3 = await fetch(API + "/resumen-diario");
+let resumen = await r3.json();
+
+let div =
+document.getElementById("resumenCaja");
+
+div.innerHTML = "";
+
+resumen.reverse().forEach(r=>{
+
+    div.innerHTML += `
+    <div class="item">
+    📅 ${r.fecha}
+    |
+    💵 Caja: $${r.caja.toLocaleString()}
+    |
+    🏦 Guardado: $${r.guardado.toLocaleString()}
+    |
+    💸 Pagado: $${r.pagado.toLocaleString()}
+    </div>
+    `;
+
+});
+}
+async function guardarMovimiento(){
+
+    let valor =
+    Number(
+        document.getElementById(
+            "valorMovimiento"
+        ).value
+    );
+
+    let tipo =
+    document.getElementById(
+        "tipoMovimiento"
+    ).value;
+
+    if(valor <= 0){
+
+        alert("Ingrese un valor.");
+
+        return;
+    }
+
+    await fetch(
+        API + "/guardar-dinero",
+        {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body: JSON.stringify({
+                tipo: tipo,
+                valor: valor
+            })
+        }
+    );
+
+    document.getElementById(
+        "valorMovimiento"
+    ).value = "";
+
+    cargar();
+}
+
+// 🚀 AUTO
+cargar();
+setInterval(cargar,5000);
+
+</script>
+
+</body>
+</html>

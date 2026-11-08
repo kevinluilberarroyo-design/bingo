@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pantalla Jugador - Bingo</title>
+  <style>
+    body{
+      margin:0;
+      font-family:Arial;
+      background:black;
+      color:white;
+    }
+
+    .top{
+      text-align:center;
+      padding:10px;
+      background:#111;
+    }
+
+    #numeroGrande{
+      font-size:140px;
+      text-align:center;
+      margin-top:20px;
+      color:gold;
+    }
+
+    .tablero{
+      display:grid;
+      grid-template-columns: repeat(15, 1fr);
+      gap:5px;
+      padding:10px;
+    }
+
+    .num{
+      width:40px;
+      height:40px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #333;
+      border-radius:6px;
+    }
+
+    .activo{
+      background:green;
+      color:white;
+    }
+
+    #comunicado{
+      position:fixed;
+      bottom:0;
+      width:100%;
+      background:red;
+      color:white;
+      font-size:22px;
+      text-align:center;
+      padding:10px;
+      display:none;
+    }
+
+    #ganador{
+      position:fixed;
+      top:0;
+      width:100%;
+      background:gold;
+      color:black;
+      font-size:22px;
+      text-align:center;
+      padding:10px;
+      display:none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="top">🎥 PANTALLA JUGADOR</div>
+
+<div id="numeroGrande">--</div>
+
+<div id="tablero" class="tablero"></div>
+
+<div id="ganador"></div>
+<div id="comunicado"></div>
+
+<script>
+
+let tablero = document.getElementById("tablero");
+
+// construir tablero 1-75
+for(let i=1;i<=75;i++){
+  let div = document.createElement("div");
+  div.className = "num";
+  div.id = "n"+i;
+  div.innerText = i;
+  tablero.appendChild(div);
+}
+
+let ultimoSalidos = [];
+
+async function refrescar(){
+
+  try{
+
+    // 🔥 estado del juego (números cantados)
+    let r1 = await fetch("/guardarEstado");
+    let estado = await r1.json();
+
+    let salidos = estado.salidos || [];
+
+    // marcar nuevos
+    salidos.forEach(n=>{
+      let el = document.getElementById("n"+n);
+      if(el) el.classList.add("activo");
+    });
+
+    // mostrar último número grande
+    if(salidos.length > 0){
+      let last = salidos[salidos.length - 1];
+      document.getElementById("numeroGrande").innerText = last;
+    }
+
+    // comunicado
+    let r2 = await fetch("/comunicado");
+    let com = await r2.json();
+
+    let c = document.getElementById("comunicado");
+
+    if(com.activo){
+      c.style.display = "block";
+      c.innerText = com.texto || "";
+    }else{
+      c.style.display = "none";
+    }
+
+    // ganador
+    let r3 = await fetch("/ganadores.json");
+    let g = await r3.json();
+
+    if(g.ganadores && g.ganadores.length > 0){
+      let ganador = g.ganadores[0];
+
+      let div = document.getElementById("ganador");
+      div.style.display = "block";
+      div.innerText =
+        `🎉 GANADOR | Módulo ${ganador.modulo} | Cartón ${ganador.carton} | ${ganador.vendedor}`;
+    }
+
+  }catch(e){
+    console.log("error pantalla:", e);
+  }
+}
+
+setInterval(refrescar, 1000);
+refrescar();
+
+</script>
+
+</body>
+</html>

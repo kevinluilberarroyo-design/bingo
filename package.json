@@ -1,0 +1,25 @@
+{
+  "name": "proyecto_bingo_lulu2021",
+  "version": "1.0.0",
+  "description": "Bingo La 16",
+  "type": "commonjs",
+  "scripts": {
+    "tauri": "tauri dev"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-log": "^2.8.0",
+    "bonjour": "^3.5.1",
+    "cors": "^2.8.6",
+    "escpos": "^3.0.0-alpha.6",
+    "escpos-usb": "^3.0.0-alpha.4",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "node-media-server": "^4.2.4",
+    "node-thermal-printer": "^4.6.0",
+    "say": "^0.16.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.0"
+  }
+}

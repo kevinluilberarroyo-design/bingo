@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bingo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body{
+  margin:0;
+  padding:0;
+  height:100%;
+  overflow:hidden;
+}
+
+body{
+  background: #f5f7fb;
+  font-family: Arial;
+  text-align: center;
+}
+
+/* CONTENEDOR PRINCIPAL */
+#contenedorPrincipal {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TABLERO (NO TOCAR) */
+.tablero{
+  display: grid;
+  grid-template-columns: 6vw repeat(15, 5vw);
+  gap: 0.8vw;
+  justify-content: center;
+  margin: 1vw auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* LETRAS */
+.letraFila{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* CASILLAS */
+.casilla{
+  width: 5vw;
+  height: 5vw;
+  border: 3px solid #ccc;
+  border-radius: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: white;
+  font-size: 2vw;
+  font-weight: bold;
+}
+
+.b { border-color: #3b82f6; }
+.i { border-color: #22c55e; }
+.n { border-color: #f59e0b; }
+.g { border-color: #ef4444; }
+.o { border-color: #8b5cf6; }
+
+.marcado{
+  background: #111;
+  color: white;
+}
+
+/* INFERIOR (AQUÍ ESTABA EL PROBLEMA) */
+.inferior{
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  height: 45vh;   /* 🔥 espacio real */
+  padding: 10px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* BLOQUES */
+.bloque{
+  background: white;
+  border-radius: 10px;
+  border: 3px solid #ccc;
+  padding: 15px;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+/* TITULOS */
+.titulo{
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* NUMERO */
+#numeroGrande{
+  font-size: 3vw;
+  font-weight: bold;
+}
+
+/* CAMARA */
+#camara{
+  height: 100%;
+  width: auto;
+  max-width: 40%;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid #999;
+}
+
+#camaraBox{
+  height: 100%;
+  width: 35%;
+  display: flex;
+}
+
+#camaraBox img{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+
+/* FIGURAS */
+.cartones{
+  flex: 1;
+  min-height: 0;
+  border: 3px dashed #bbb;
+  border-radius: 30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 1px;
+  color: hwb(123 24% 7%);
+}
+
+/* CONTENEDOR FIGURAS */
+#figurasContenedor{
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  gap:15px;
+  width:100%;
+  height:100%;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* FIGURA INDIVIDUAL */
+.figuraBox{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* CELDAS FIGURA */
+.celdaFig{
+  width: 40px;
+  height: 40px;
+  border: 2px solid #aaa;
+}
+
+.activa{
+  background: hwb(123 15% 11%);
+}
+
+.free{
+  background: gold;
+}
+
+/* CARTÓN GUIA (FIX REAL) */
+.cartonGuia{
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 5px;
+}
+
+.cartonGuia td,
+.cartonGuia th{
+  width: clamp(25px, 3vw, 30px);
+  height: clamp(25px, 3vw, 30px);
+  border: 2px solid #999;
+  text-align: center;
+}
+
+/* MINI GANADOR */
+#ganadorMini{
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+#ganadorMini .carton td{
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+#ganadorMini .carton{
+  border-collapse: collapse;
+  margin:auto;
+}
+
+#ganadorMini .carton td{
+  width:35px;
+  height:35px;
+  border:2px solid #999;
+  text-align:center;
+  font-weight:bold;
+  background:white;
+}
+
+
+#ganadorMini .figura{
+  background: limegreen;
+  color:white;
+}
+
+#ganadorMini .free{
+  background: gold;
+}
+
+#overlayComunicado{
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: radial-gradient(circle, rgba(255,0,0,0.95), rgba(0,0,0,0.98));
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999999;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.comunicadoBox{
+  width: 80%;
+  max-width: 900px;
+  background: rgba(0,0,0,0.6);
+  border: 6px solid gold;
+  border-radius: 25px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(255,215,0,0.5);
+}
+
+.tituloComunicado{
+  font-size: 40px;
+  font-weight: bold;
+  color: gold;
+  margin-bottom: 20px;
+}
+
+.contenidoComunicado{
+  font-size: 38px;
+  font-weight: bold;
+  color: white;
+  border: 3px dashed white;
+  padding: 20px;
+  border-radius: 15px;
+  background: rgba(255,255,255,0.08);
+}
+
+.decoracionBingo{
+  margin-top: 20px;
+  font-size: 25px;
+  color: gold;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink{
+  50%{ opacity:0.3; }
+}
+
+@keyframes fadeIn{
+  from{ transform: scale(0.9); opacity:0; }
+  to{ transform: scale(1); opacity:1; }
+}
+
+</style>
+
+</head>
+<script>
+
+
+
+
+  //---------------
+<!-- 🔥 COMUNICADO SUPERPUESTO -->
+
+</script>
+
+
+
+<body>
+
+<!-- 🔥 TABLERO -->
+<div id="tablero" class="tablero"></div>
+
+<!-- 🔥 PARTE INFERIOR -->
+<div class="inferior">
+
+  <!-- CAMARA -->
+  <div id="camaraBox">
+    <img src="/stream">
+  </div>
+
+  <!-- ULTIMO NUMERO -->
+  <div class="bloque" id="bloqueNumero">
+
+    <div class="titulo">Último número</div>
+    <div id="numeroGrande">--</div>
+
+    <!-- GANADOR -->
+    <div id="ganadorMini"></div>
+    <div id="acumuladoBingo" style="
+  display:none;
+  background: radial-gradient(circle, #000, #111);
+  color: gold;
+  padding:15px;
+  border-radius:15px;
+  margin-top:10px;
+  font-size:18px;
+  font-weight:bold;
+  border:3px solid gold;
+  text-align:center;
+">
+
+  🎱 BALOTAS: <span id="contadorBalotas">0</span> / 40
+  <br><br>
+
+  💰 ACUMULADO: $ <span id="valorAcumulado">0</span>
+
+</div>
+
+  </div>
+
+  <!-- FIGURAS -->
+  <div class="bloque">
+
+    <div class="titulo">Figura en juego</div>
+
+    <div class="cartones" id="figurasContenedor"></div>
+
+    <div id="pantallaTV"></div>
+
+  </div>
+
+</div>
+
+<!-- 🔥 COMUNICADO (OVERLAY) -->
+<div id="overlayComunicado">
+
+  <div class="comunicadoBox">
+
+    <div class="tituloComunicado">
+      📢 COMUNICADO IMPORTANTE
+    </div>
+
+    <div class="contenidoComunicado">
+      <p id="textoComunicado"></p>
+    </div>
+
+    <div class="decoracionBingo">
+      🎱 B I N G O 🎱 B I N G O 🎱
+    </div>
+
+  </div>
+ <div id="overlayGanador" style="
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.9);
+  color:white;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  font-size:40px;
+  z-index:999999;
+"></div>
+
+</div>
+<script src="config.js"></script>
+<script>
+  
+  let contadorBalotas = 0;
+
+// 🔥 ESTE ES EL VALOR QUE TÚ PUEDES CAMBIAR
+let valorPorBalota = 500; // 👈 cámbialo cuando quieras
+let comunicadoVisible = false;
+let comunicadoMostrado = false;
+let acumuladoVisible = false;
+let cacheFiguras = [];
+let cachePremios = [];
+let estadoAnterior = false;
+  let figurasDB = [];
+  let colaFiguras = [];
+let figuraActual = null;
+let figuraActiva = null;
+let valorAcumulado = 0;
+let cacheFigurasStr = "";
+let indiceFiguraActiva = 0;
+const tablero = document.getElementById("tablero");
+
+
+const letras = ['B','I','N','G','O'];
+const clases = ['b','i','n','g','o'];
+function mostrarGanadorEnPantalla(data) {
+
+  const div = document.getElementById("overlayGanador");
+
+  if (!div) return;
+
+  // 🔥 normalizar entrada (array u objeto)
+  let ganador = Array.isArray(data) ? data[0] : data;
+
+  if (!ganador) return;
+
+  if (JSON.stringify(ganador) === ultimoGanadorMostrado) return;
+
+  ultimoGanadorMostrado = JSON.stringify(ganador);
+
+  div.style.display = "flex";
+
+  div.innerHTML = `
+    <div style="
+      background:black;
+      padding:30px;
+      border-radius:20px;
+      text-align:center;
+      border:3px solid gold;
+      color:white;
+    ">
+      <h1>🏆 GANADOR 🏆</h1>
+      <h2>${ganador?.nombre || "SIN NOMBRE"}</h2>
+      <h3>${ganador?.modulo || ""}</h3>
+      <h3>${ganador?.carton || ""}</h3>
+      <h3>${ganador?.figura || ""}</h3>
+    </div>
+  `;
+}
+for(let l = 0; l < 5; l++){
+
+  let letraDiv = document.createElement("div");
+  letraDiv.classList.add("letraFila");
+  letraDiv.innerText = letras[l];
+  tablero.appendChild(letraDiv);
+
+  let inicio = l * 15 + 1;
+  let fin = inicio + 14;
+  
+
+
+
+  for(let i = inicio; i <= fin; i++){
+    let casilla = document.createElement("div");
+    casilla.classList.add("casilla");
+    casilla.classList.add(clases[l]);
+
+    casilla.innerText = i;
+    casilla.id = "n"+i;
+
+    tablero.appendChild(casilla);
+  }
+}
+setInterval(() => {
+    sincronizar();
+}, 300);
+
+
+function actualizarAcumulado(figuraActual, cantidadBalotas) {
+
+    let div = document.getElementById("acumuladoBingo");
+
+    let spanBalotas =
+    document.getElementById("contadorBalotas");
+
+    let spanValor =
+    document.getElementById("valorAcumulado");
+
+    // 🔥 SOLO SI ES BINGO
+    if(figuraActual === "bingo"){
+
+        div.style.display = "block";
+
+        // 🎱 BALOTAS REALES
+        spanBalotas.innerText = cantidadBalotas;
+
+        // 💰 VALOR MANUAL
+        spanValor.innerText =
+        valorAcumulado.toLocaleString();
+
+        // 🔥 OCULTAR EN 40
+        if(cantidadBalotas >= 40){
+
+            div.style.display = "none";
+        }
+
+    } else {
+
+        div.style.display = "none";
+    }
+}
+
+function sincronizar(){
+
+    fetch('/estado.json')
+    .then(r => r.json())
+    .then(data => {
+
+        let salidos = data.salidos || [];
+
+        if(!salidos.length){
+
+         // 🔥 BORRAR TODAS LAS CASILLAS
+          document.querySelectorAll(".casilla").forEach(c=>{
+          c.classList.remove("marcado");
+          });
+
+          // 🔥 LIMPIAR NÚMERO GRANDE
+          document.getElementById("numeroGrande").innerText = "--";
+
+           return;
+        }
+
+        let ultimo = salidos[salidos.length - 1];
+
+        // 🔥 actualizar último número
+        document.getElementById("numeroGrande").innerText = ultimo;
+
+        // 🔥 marcar tablero
+        let casilla = document.getElementById("n"+ultimo);
+        if(casilla){
+            casilla.classList.add("marcado");
+        }
+        document.getElementById("contadorBalotas").innerText =
+    salidos.length;
+    });
+}
+async function cargarFiguras(){
+
+  let res = await fetch("/figuras_db.json?x=" + Date.now());
+  let data = await res.json();
+
+  figurasDB = data.figuras || [];
+
+  console.log("🔥 figuras cargadas:", figurasDB.length);
+}
+window.addEventListener("load", async () => {
+
+  console.log("🔥 INICIANDO SISTEMA...");
+
+  await cargarFiguras();
+
+  // 🔥 ESTO ES LO QUE TE FALTABA
+  let cont = document.getElementById("figurasContenedor");
+  cont.innerHTML = "";
+
+ let res = await fetch("/premios_figuras.json");
+let data = await res.json();
+
+let figura = data.f1;
+
+if(figura){
+  dibujarFiguraEn(cont, figura);
+}
+
+});
+
+let estadoJuego = false;
+
+async function leerEstadoJuego(){
+
+ let res = await fetch("/estado-juego");
+  let data = await res.json();
+
+  estadoJuego = data.juegoActivo || false;
+
+  return estadoJuego; // 🔥 IMPORTANTE
+}
+
+
+function dibujarFiguraEn(contenedor, nombre){
+
+  let figura = figurasDB.find(f => f.nombre === nombre);
+
+  if(!figura){
+    console.log("❌ figura no existe:", nombre);
+    return;
+  }
+
+  let posiciones = figura.posiciones;
+
+  let tabla = document.createElement("table");
+  tabla.className = "cartonGuia";
+
+  for(let r=0;r<5;r++){
+
+    let fila = document.createElement("tr");
+
+    for(let c=0;c<5;c++){
+
+      let td = document.createElement("td");
+
+      let index = r*5+c;
+
+      if(index === 12) td.classList.add("free");
+
+      if(posiciones.includes(index)) td.classList.add("activa");
+
+      fila.appendChild(td);
+    }
+
+    tabla.appendChild(fila);
+  }
+
+  contenedor.appendChild(tabla);
+}
+let premios = [0, 0, 0];
+//figura guia___--
+
+
+
+
+//figura guia___--
+
+//-----
+
+
+
+
+function limpiar(txt){
+  return txt
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s/g, "_");
+}
+
+
+
+
+
+
+
+
+function getFig(nombre){
+
+  let limpio = limpiar(nombre);
+
+  let f = figurasDB.find(x => limpiar(x.nombre) === limpio);
+
+  if(!f){
+    console.log("❌ NO encontrada:", limpio);
+    return [];
+  }
+
+  return f.posiciones;
+}
+
+console.log("🔥 script final cargado");
+
+
+/*function generarHTMLCarton(datosPlano, figura){
+
+    let tipo = figura.toLowerCase();
+
+    tipo = tipo.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+    let figIndex = getFig(tipo);
+
+    let html = "<table class='carton'>";
+
+    for(let i=0;i<5;i++){
+
+        html += "<tr>";
+
+        for(let j=0;j<5;j++){
+
+            let index = i*5+j;
+
+            let valor = datosPlano[index];
+
+            let clase = "";
+
+            if(figIndex.includes(index)){
+                clase = "figura";
+            }
+
+            if(index === 12){
+                valor = "FREE";
+            }
+
+            html += `<td class="${clase}">${valor}</td>`;
+        }
+
+        html += "</tr>";
+    }
+
+    html += "</table>";
+
+    return html;
+}*/
+
+
+
+
+////--------fin de trasmision de guia-----
+
+
+
+
+
+
+
+</script>
+<script>
+
+
+let intentandoFullscreen = false;
+
+function activarFullscreen(){
+
+  if(document.fullscreenElement) return;
+
+  if(intentandoFullscreen) return;
+
+  intentandoFullscreen = true;
+
+  const elem = document.documentElement;
+
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen()
+    .finally(() => {
+      intentandoFullscreen = false;
+    });
+  } else {
+    intentandoFullscreen = false;
+  }
+}
+
+// 👇 permitir reintentar siempre
+document.addEventListener("click", activarFullscreen);
+
+// 👇 si se sale, permitir volver a entrar
+document.addEventListener("fullscreenchange", () => {
+
+  if(!document.fullscreenElement){
+
+    intentandoFullscreen = false;
+  }
+
+});
+
+function cerrarComunicado(){
+    document.getElementById("overlayComunicado").style.display = "none";
+}
+// 👇 necesario en TVs
+
+
+/*setInterval(async () => {
+
+  try {
+
+    await leerEstadoJuego();
+
+    let res = await fetch("/premios_figuras.json");
+    let data = await res.json();
+    console.log("🔥 DATA COMPLETA:", data);
+console.log("f1:", data.f1);
+console.log("f2:", data.f2);
+console.log("f3:", data.f3);
+console.log("p1:", data.p1);
+console.log("p2:", data.p2);
+console.log("p3:", data.p3);
+
+    let cont = document.getElementById("figurasContenedor");
+    cont.innerHTML = "";
+
+    // 🔥 SOLO FIGURAS (SIN PRECIOS)
+   let figuras = [data.f1, data.f2, data.f3].filter(x => x && x !== "");
+
+ 
+
+cacheFigurasStr = nuevasFigurasStr;
+
+// 🔥 SI NO HAY FIGURAS
+if (figuras.length === 0) {
+
+    cont.innerHTML = "<div style='color:#777'>Sin figuras activas</div>";
+
+    actualizarAcumulado("", 0);
+
+    return;
+}
+
+// 🔥 FIGURA ACTIVA
+let figuraActiva = figuras[0];
+
+// 🔥 CONTAR BALOTAS REALES
+let estadoRes = await fetch('/estado.json');
+let estadoData = await estadoRes.json();
+
+let cantidadBalotas =
+(estadoData.salidos || []).length;
+
+// 🔥 LEER ACUMULADO MANUAL
+let acumuladoRes = await fetch('/acumulado');
+let acumuladoData = await acumuladoRes.json();
+
+valorAcumulado =
+acumuladoData.valor || 0;
+
+// 🔥 ACTUALIZAR PANEL
+actualizarAcumulado(
+   figuraActiva,
+   cantidadBalotas
+);
+// 🔥 ACTUALIZAR PANEL
+
+    if (estadoJuego && figuras.length > 0) {
+      figuras = [figuras[0]];
+    }
+
+    if (figuras.length === 0) {
+      cont.innerHTML = "<div style='color:#777'>Sin figuras activas</div>";
+      return;
+    }
+console.log("🔥 FIGURAS RAW:", data);
+console.log("🔥 FIGURAS ARRAY:", [data.f1, data.f2, data.f3]);
+   figuras.forEach(fig => {
+
+  let box = document.createElement("div");
+  box.className = "figuraBox";
+
+  // 🔥 TITULO
+  let titulo = document.createElement("div");
+
+  titulo.innerText = fig;
+
+  titulo.style.fontWeight = "bold";
+  titulo.style.fontSize = "22px";
+  titulo.style.marginBottom = "5px";
+
+  box.appendChild(titulo);
+
+  // 🔥 BUSCAR PREMIO
+  let premiosMap = {
+  [data.f1]: data.p1,
+  [data.f2]: data.p2,
+  [data.f3]: data.p3
+};
+
+let limpiar = (txt) =>
+  txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "_");
+
+let key = Object.keys(premiosMap).find(k => limpiar(k) === limpiar(fig));
+
+let precio = premiosMap[key] || 0;
+
+  // 🔥 MOSTRAR PREMIO
+  let premio = document.createElement("div");
+
+  premio.innerText = "$ " + Number(precio || 0).toLocaleString();
+
+  premio.style.fontSize = "28px";
+  premio.style.fontWeight = "bold";
+  premio.style.color = "green";
+  premio.style.marginBottom = "10px";
+
+  box.appendChild(premio);
+
+  // 🔥 DIBUJAR FIGURA
+  dibujarFiguraEn(box, fig);
+
+  cont.appendChild(box);
+
+});
+
+  } catch (err) {
+    console.log("❌ ERROR FIGURAS:", err);
+  }
+
+}, 1000);*/
+
+setInterval(async () => {
+
+  try {
+
+    await leerEstadoJuego();
+
+    let res = await fetch("/premios_figuras.json");
+    let data = await res.json();
+
+    // 🔥 LISTA COMPLETA DE FIGURAS
+    let figuras = [
+      data.f1,
+      data.f2,
+      data.f3
+    ].filter(x => x && x !== "");
+
+    let cont = document.getElementById("figurasContenedor");
+
+    // 🔥 SOLO REDIBUJAR SI CAMBIÓ ALGO REAL
+    let estadoActual = JSON.stringify({
+      f1: data.f1,
+      f2: data.f2,
+      f3: data.f3,
+      p1: data.p1,
+      p2: data.p2,
+      p3: data.p3
+    });
+
+    if (estadoActual === cacheFigurasStr) {
+      return;
+    }
+
+    cacheFigurasStr = estadoActual;
+
+    // 🔥 LIMPIAR CONTENEDOR
+    cont.innerHTML = "";
+
+    // 🔥 SI NO HAY FIGURAS
+    if (figuras.length === 0) {
+
+      cont.innerHTML =
+        "<div style='color:#777'>Sin figuras activas</div>";
+
+      return;
+    }
+
+    // 🔥 ESTADO BALOTAS
+    let estadoRes = await fetch('/estado.json');
+    let estadoData = await estadoRes.json();
+
+    let cantidadBalotas =
+      (estadoData.salidos || []).length;
+
+    // 🔥 ACUMULADO
+    let acumuladoRes = await fetch('/acumulado');
+    let acumuladoData = await acumuladoRes.json();
+
+    valorAcumulado = acumuladoData.valor || 0;
+
+    actualizarAcumulado(figuras[0], cantidadBalotas);
+
+    // 🔥 DIBUJAR TODAS LAS FIGURAS
+    figuras.forEach(fig => {
+
+      let box = document.createElement("div");
+      box.className = "figuraBox";
+
+      // 🔥 TITULO
+      let titulo = document.createElement("div");
+
+      titulo.innerText = fig;
+      titulo.style.fontWeight = "bold";
+      titulo.style.fontSize = "22px";
+      titulo.style.marginBottom = "5px";
+
+      box.appendChild(titulo);
+
+      // 🔥 MAPA PREMIOS
+      let premiosMap = {
+        [data.f1]: data.p1,
+        [data.f2]: data.p2,
+        [data.f3]: data.p3
+      };
+
+      // 🔥 LIMPIAR TEXTO
+      let limpiarTxt = (txt) =>
+        txt.toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s/g, "_");
+
+      let key = Object.keys(premiosMap).find(k =>
+        limpiarTxt(k) === limpiarTxt(fig)
+      );
+
+      let precio = premiosMap[key] || 0;
+
+      // 🔥 PREMIO
+      let premio = document.createElement("div");
+
+      premio.innerText =
+        "$ " + Number(precio).toLocaleString();
+
+      premio.style.fontSize = "28px";
+      premio.style.fontWeight = "bold";
+      premio.style.color = "green";
+      premio.style.marginBottom = "10px";
+
+      box.appendChild(premio);
+
+      // 🔥 DIBUJAR FIGURA
+      dibujarFiguraEn(box, fig);
+
+      cont.appendChild(box);
+
+    });
+
+  } catch (err) {
+
+    console.log("❌ ERROR FIGURAS:", err);
+
+  }
+
+}, 1000);
+
+/*setInterval(async () => {
+
+  try {
+
+    await leerEstadoJuego();
+
+    let res = await fetch("/premios_figuras.json");
+    let data = await res.json();
+
+   // 🔥 LEER ÍNDICE DESDE EL SERVIDOR
+let estadoFigura = await fetch('/figuras.json?x=' + Date.now());
+let figuraData = await estadoFigura.json();
+
+// 🔥 ÍNDICE ACTUAL
+indiceFiguraActiva = figuraData.indice || 0;
+
+// 🔥 LISTA DE FIGURAS
+let todasFiguras = [
+  data.f1,
+  data.f2,
+  data.f3
+].filter(x => x && x !== "");
+
+let figuras = todasFiguras;
+
+if(estadoJuego){
+
+   figuras = [
+      todasFiguras[indiceFiguraActiva]
+   ].filter(Boolean);
+
+}
+
+    let cont = document.getElementById("figurasContenedor");
+
+    // 🔥 SOLO REDIBUJAR SI CAMBIÓ ALGO REAL
+    let estadoActual = JSON.stringify({
+  f1: data.f1,
+  f2: data.f2,
+  f3: data.f3,
+  p1: data.p1,
+  p2: data.p2,
+  p3: data.p3,
+  indice: indiceFiguraActiva,
+  juego: estadoJuego
+});
+    if (estadoActual === cacheFigurasStr) {
+      return;
+    }
+
+    cacheFigurasStr = estadoActual;
+
+    // 🔥 limpiar solo cuando hay cambio real
+    cont.innerHTML = "";
+
+    if (figuras.length === 0) {
+      cont.innerHTML = "<div style='color:#777'>Sin figuras activas</div>";
+      return;
+    }
+
+    
+
+    let estadoRes = await fetch('/estado.json');
+    let estadoData = await estadoRes.json();
+
+    let cantidadBalotas = (estadoData.salidos || []).length;
+
+    let acumuladoRes = await fetch('/acumulado');
+    let acumuladoData = await acumuladoRes.json();
+
+    valorAcumulado = acumuladoData.valor || 0;
+
+    actualizarAcumulado(figuras[0], cantidadBalotas);
+
+    figuras.forEach(fig => {
+
+      let box = document.createElement("div");
+      box.className = "figuraBox";
+
+      let titulo = document.createElement("div");
+      titulo.innerText = fig;
+      titulo.style.fontWeight = "bold";
+      titulo.style.fontSize = "22px";
+      titulo.style.marginBottom = "5px";
+
+      box.appendChild(titulo);
+
+      let premiosMap = {
+        [data.f1]: data.p1,
+        [data.f2]: data.p2,
+        [data.f3]: data.p3
+      };
+
+      let limpiarTxt = (txt) =>
+        txt.toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s/g, "_");
+
+      let key = Object.keys(premiosMap).find(k =>
+        limpiarTxt(k) === limpiarTxt(fig)
+      );
+
+      let precio = premiosMap[key] || 0;
+
+      let premio = document.createElement("div");
+      premio.innerText = "$ " + Number(precio).toLocaleString();
+      premio.style.fontSize = "28px";
+      premio.style.fontWeight = "bold";
+      premio.style.color = "green";
+      premio.style.marginBottom = "10px";
+
+      box.appendChild(premio);
+
+      dibujarFiguraEn(box, fig);
+
+      cont.appendChild(box);
+
+    });
+
+  } catch (err) {
+    console.log("❌ ERROR FIGURAS:", err);
+  }
+*/
+
+
+////////////pagar premio//////
+
+
+/*setInterval(async () => {
+
+    try{
+
+        // 🔥 leer estado números
+        let rEstado = await fetch('/estado.json?x=' + Date.now());
+        let estado = await rEstado.json();
+
+        let salidos = estado.salidos || [];
+
+        let ultimoNumero = salidos[salidos.length - 1];
+
+        // 🔥 si salió un número nuevo → borrar ganador
+       // 🔥 detectar cambio REAL de número
+if(ultimoNumero){
+
+    // primera vez
+    if(ultimoNumeroDetectado === null){
+
+        ultimoNumeroDetectado = ultimoNumero;
+
+    }
+    // si cambió el número
+    else if(ultimoNumero !== ultimoNumeroDetectado){
+
+        ultimoNumeroDetectado = ultimoNumero;
+
+        // 🔥 ahora sí borrar ganador
+        document.getElementById("ganadorMini").innerHTML = "";
+
+        ultimoGanadorMostrado = null;
+    }
+}
+
+        // 🔥 leer ganador
+       let res = await fetch('/ganadorTV?x=' + Date.now());
+
+       let data = await res.json();
+
+        console.log(
+   "📺 GANADOR REAL:",
+   JSON.stringify(data.ganador, null, 2)
+);
+
+        let div = document.getElementById("ganadorMini");
+
+        if(!div) return;
+
+        // 🔥 si hay ganador nuevo
+       
+       // 🔥 guardar ganador SOLO si NO hay uno mostrado
+if(data && data.ganador){
+
+    let g = data.ganador;
+
+    if(g.datosPlano && g.figura){
+
+        g.html = generarHTMLCarton(
+            g.datosPlano,
+            g.figura
+        );
+    }
+
+    ultimoGanadorMostrado = g;
+}
+
+        // 🔥 si no hay ninguno guardado
+        if(!ultimoGanadorMostrado) return;
+
+        let g = ultimoGanadorMostrado;
+
+        div.innerHTML = `
+
+            <div style="
+                background:black;
+                color:white;
+                padding:15px;
+                border-radius:15px;
+                margin-top:10px;
+            ">
+
+                <h2 style="color:gold;">
+                    🎉 GANADOR 🎉
+                </h2>
+
+                <h3>${g.modulo}</h3>
+
+                <h3>${g.carton}</h3>
+
+                <h3>${g.figura}</h3>
+
+                <h3>${g.vendedor}</h3>
+
+                ${g.html || ""}
+
+            </div>
+
+        `;
+
+    }catch(e){
+
+        console.log("Error ganadorMini:", e);
+
+    }
+
+}, 1000);*/
+///ganadores -----
+
+async function escucharGanadorTV() {
+  try {
+
+    const res = await fetch("/ganadores.json?t=" + Date.now());
+    const data = await res.json();
+
+    console.log("📦 GANADORES RAW:", data);
+
+    const lista = data.ganadores || [];
+
+    if (lista.length === 0) return;
+
+    const ganador = lista[lista.length - 1]; // 🔥 EL ÚLTIMO
+
+    mostrarGanadorEnPantalla(ganador);
+
+  } catch (e) {
+    console.log("❌ Error leyendo ganadores TV", e);
+  }
+}
+
+// 🔥 loop de actualización
+setInterval(escucharGanadorTV, 1000);
+
+function generarHTMLCarton(matriz, figura){
+
+    let posiciones = getFig(figura || "");
+
+    let pintar = posiciones.map(pos => {
+        return [
+            Math.floor(pos / 5),
+            pos % 5
+        ];
+    });
+
+    let html = "<table class='carton'>";
+
+    for(let i=0;i<5;i++){
+        html += "<tr>";
+
+        for(let j=0;j<5;j++){
+
+            let esFigura = pintar.some(p => p[0] === i && p[1] === j);
+
+            let clase = esFigura ? "figura" : "";
+
+            // 🔥 FIX CLAVE AQUÍ
+            let valor = matriz[i][j];
+
+            html += `<td class="${clase}">${valor}</td>`;
+        }
+
+        html += "</tr>";
+    }
+
+    html += "</table>";
+
+    return html;
+}
+let ultimoGanador = null;
+
+setInterval(async () => {
+
+  try {
+
+    let res = await fetch("/ganadores.json?t=" + Date.now())
+    let data = await res.json();
+
+    let ganadores = data.ganadores || [];
+
+    if (ganadores.length === 0) return;
+
+    let ganador = ganadores[0];
+
+    // evitar repetir
+    if (JSON.stringify(ganador) === JSON.stringify(ultimoGanador)) return;
+
+    ultimoGanador = ganador;
+
+    mostrarGanadorEnPantalla(ganador);
+
+  } catch (e) {
+    console.log("Error leyendo ganadores TV", e);
+  }
+
+}, 1000);
+
+
+
+async function actualizarGanadores() {
+  const res = await fetch('/ganadores.json');
+  const data = await res.json();
+
+  if (data.ganadores && data.ganadores.length > 0) {
+    mostrarGanadorEnPantalla(data.ganadores);
+  }
+}
+
+setInterval(actualizarGanadores, 1000);
+
+let ultimoGanadorMostrado = null;
+
+function mostrarGanadorEnPantalla(ganadores) {
+
+  let div = document.getElementById("overlayGanador");
+
+  if(!ganadores || ganadores.length === 0) return;
+
+  let ganador = ganadores[0];
+
+  // 🔥 evitar repetición
+  if(JSON.stringify(ganador) === ultimoGanadorMostrado) return;
+
+  ultimoGanadorMostrado = JSON.stringify(ganador);
+
+  div.style.display = "flex";
+
+  div.innerHTML = `
+    <div style="
+      background:black;
+      padding:30px;
+      border-radius:20px;
+      text-align:center;
+      border:3px solid gold;
+    ">
+      <h1>🏆 GANADOR 🏆</h1>
+      <h2>${ganador.nombre}</h2>
+    </div>
+  `;
+}
+
+setInterval(async () => {
+
+  let resp = await fetch("/comunicado");
+  let data = await resp.json();
+
+  if(data.activo && data.tipo === "ganador"){
+     console.log("🔥 GANADOR:", data.ganador);
+    mostrarGanadorEnPantalla([data.ganador]);
+  }
+
+  if(!data.activo){
+    document.getElementById("overlayGanador").style.display = "none";
+  }
+
+}, 1000);
+
+
+   ///////premio/////////
+
+   // intento automático
+
+   </script>
+
+</body>
+</html>
